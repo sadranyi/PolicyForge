@@ -17,6 +17,7 @@ const { generateReviewDocument } = require('./generators/review-document');
 const { compileRulePack } = require('./rulepack/compile');
 const { scanText } = require('./rulepack/scan');
 const { validateRulePack } = require('./rulepack/rulepack');
+const { toSarif, toOcsf, toSigma } = require('./emitters/emitters');
 
 module.exports = {
   loadBaseline,
@@ -27,6 +28,9 @@ module.exports = {
   compileRulePack,
   scanText,
   validateRulePack,
+  toSarif,
+  toOcsf,
+  toSigma,
 
   /**
    * One-shot pipeline: text → review → toolkit
