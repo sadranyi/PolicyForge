@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Why PolicyForge exists — PolicyForge</title>
+<meta name="description" content="How compliance dies in the gap between the document and the commit — and what it would take to actually fix it.">
+
+<!-- Open Graph -->
+<meta property="og:title" content="Why PolicyForge exists">
+<meta property="og:description" content="How compliance dies in the gap between the document and the commit.">
+<meta property="og:type" content="article">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --teal-deep: #0f3a3a;
+    --teal-mid: #1d5757;
+    --teal-bright: #2d8585;
+    --cream: #faf6ee;
+    --cream-warm: #f4ecd8;
+    --paper: #fffdf6;
+    --terracotta: #c8553d;
+    --charcoal: #1a1a1a;
+    --charcoal-soft: #2a2a2a;
+    --muted: #6b6b6b;
+    --rule: #d8d0bc;
+    --rule-soft: #e8e1d0;
+
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--cream);
+    color: var(--charcoal);
+    line-height: 1.55;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.05  0 0 0 0 0.05  0 0 0 0 0.05  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  main, header { position: relative; z-index: 1; }
+
+  a { color: var(--teal-mid); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; transition: color 120ms ease; }
+  a:hover { color: var(--terracotta); }
+
+  /* Top bar */
+  .topbar {
+    border-bottom: 1px solid var(--rule);
+    background: rgba(250, 246, 238, 0.92);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .topbar-inner {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 1.1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.35rem;
+    color: var(--teal-deep);
+    letter-spacing: -0.01em;
+    text-decoration: none;
+  }
+  .brand-mark {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background: var(--terracotta);
+    transform: translateY(-1px);
+  }
+  .topbar a { text-decoration: none; }
+  .back-link {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--charcoal-soft);
+  }
+  .back-link::before { content: '← '; color: var(--terracotta); }
+
+  /* Article */
+  article {
+    max-width: 38rem;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 6vw, 4.5rem) 1.5rem;
+  }
+
+  .post-meta {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--terracotta);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .post-meta::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--terracotta);
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    color: var(--teal-deep);
+    font-weight: 500;
+    margin-bottom: 1rem;
+    font-variation-settings: "opsz" 144;
+  }
+
+  .post-deck {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--charcoal-soft);
+    font-style: italic;
+    font-weight: 400;
+    margin-bottom: 2.5rem;
+    line-height: 1.4;
+  }
+
+  hr.section-divider {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 2.5rem 0;
+  }
+
+  hr.flourish {
+    border: none;
+    text-align: center;
+    margin: 2.5rem 0;
+    height: 1rem;
+    position: relative;
+  }
+  hr.flourish::before {
+    content: '· · ·';
+    color: var(--rule);
+    font-size: 1.5rem;
+    letter-spacing: 0.5rem;
+  }
+
+  article p {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--charcoal-soft);
+    margin-bottom: 1.4rem;
+  }
+
+  article p strong {
+    color: var(--teal-deep);
+    font-weight: 600;
+  }
+
+  article p em {
+    font-style: italic;
+    color: var(--charcoal);
+  }
+
+  article h2 {
+    font-family: var(--font-display);
+    font-size: 1.7rem;
+    line-height: 1.2;
+    color: var(--teal-deep);
+    font-weight: 500;
+    letter-spacing: -0.015em;
+    margin: 2.8rem 0 1.2rem;
+  }
+
+  article h3 {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    line-height: 1.25;
+    color: var(--teal-deep);
+    font-weight: 500;
+    margin: 2rem 0 1rem;
+  }
+
+  /* Inline code and code blocks */
+  article code {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    background: var(--cream-warm);
+    color: var(--teal-deep);
+    padding: 0.1em 0.35em;
+    border-radius: 2px;
+  }
+  article pre {
+    background: var(--charcoal);
+    color: var(--cream);
+    padding: 1.2rem 1.4rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    line-height: 1.6;
+  }
+  article pre code {
+    background: transparent;
+    color: var(--cream);
+    padding: 0;
+    font-size: 0.85rem;
+  }
+
+  /* Tables */
+  article table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.8rem 0;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    font-size: 0.95rem;
+  }
+  article th, article td {
+    text-align: left;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--rule-soft);
+    line-height: 1.45;
+    vertical-align: top;
+  }
+  article th {
+    background: var(--cream-warm);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--teal-deep);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+    border-bottom: 1px solid var(--rule);
+  }
+  article td:first-child { color: var(--terracotta); font-weight: 500; }
+  article tr:last-child td { border-bottom: none; }
+
+  article ul, article ol {
+    margin: 1rem 0 1.4rem 1.5rem;
+    color: var(--charcoal-soft);
+  }
+  article li {
+    margin-bottom: 0.55rem;
+    line-height: 1.6;
+    padding-left: 0.3rem;
+  }
+  article li strong { color: var(--teal-deep); }
+
+  /* Drop cap on first paragraph (subtle) */
+  article > p:first-of-type::first-letter {
+    font-family: var(--font-display);
+    font-size: 3.4rem;
+    font-weight: 500;
+    float: left;
+    line-height: 0.9;
+    margin: 0.15rem 0.5rem 0 0;
+    color: var(--terracotta);
+  }
+
+  /* Footer / author byline */
+  .byline {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--font-body);
+    font-size: 0.92rem;
+    color: var(--muted);
+    line-height: 1.5;
+    font-style: italic;
+  }
+
+  .post-cta {
+    margin-top: 3rem;
+    padding: 2rem 1.8rem;
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    text-align: center;
+  }
+  .post-cta-label {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--terracotta);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.7rem;
+  }
+  .post-cta-text {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--teal-deep);
+    margin-bottom: 1.4rem;
+    line-height: 1.3;
+  }
+  .post-cta-buttons {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.3rem;
+    text-decoration: none;
+    transition: all 150ms ease;
+    display: inline-block;
+  }
+  .btn-primary {
+    background: var(--teal-deep);
+    color: var(--cream);
+  }
+  .btn-primary:hover {
+    background: var(--terracotta);
+    color: white;
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--teal-deep);
+    border: 1px solid var(--rule);
+  }
+  .btn-secondary:hover {
+    border-color: var(--teal-deep);
+    background: var(--cream-warm);
+  }
+
+  footer {
+    background: var(--teal-deep);
+    color: var(--cream);
+    padding: 2rem 1.5rem;
+    margin-top: 4rem;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+  }
+  footer a { color: var(--cream); text-decoration: none; }
+  footer a:hover { color: var(--terracotta); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-mark"></span>
+      PolicyForge
+    </a>
+    <a href="index.html" class="back-link">Back to home</a>
+  </div>
+</header>
+
+<main>
+<article>
+  <div class="post-meta">Essay · April 2026</div>
+
+  <h1>Why PolicyForge exists</h1>
+
+  <p class="post-deck">Or: how compliance dies in the gap between the document and the commit.</p>
+
+  <hr class="section-divider">
+
+  <p>There's a folder on every company's SharePoint called something like <strong>Policies — Final</strong>. Inside it, somebody has saved the AI usage policy as <code>AI_Usage_Policy_v6_FINAL_v3.docx</code>. It was reviewed by Legal, approved by leadership, and rolled out via a mandatory training video that everyone clicks through at 4:55pm on a Friday. The policy is real. It exists. It even has a section header called "Acceptable Use" with bullet points.</p>
+
+  <p>And every Tuesday afternoon, someone on the data team pastes a customer support ticket into ChatGPT to help draft a reply.</p>
+
+  <p>This is not a story about negligent employees. It's a story about an architectural failure in how organizations connect policy to practice — and what it would take to actually fix it.</p>
+
+  <h2>The gap</h2>
+
+  <p>The work of writing a policy and the work of enforcing it sit in different worlds, owned by different teams, expressed in different formats. They never meet.</p>
+
+  <p>The policy lives as prose. It says things like <em>"Confidential customer data must not be entered into AI systems that have not been approved by IT-Security."</em> This sentence is unambiguous to a reader and computationally invisible to every system the reader actually uses. The developer's IDE has no idea that rule exists. The CI pipeline doesn't enforce it. The secret-scanner doesn't know what "customer data" is. The Slack channel where someone is about to paste a support ticket has no awareness of the policy that prohibits the paste.</p>
+
+  <p>What organizations actually have, in practice, is two parallel realities:</p>
+
+  <table>
+    <thead>
+      <tr><th>The policy says</th><th>The system does</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>"Don't paste customer data into AI tools"</td><td>Cmd+V works in every browser tab</td></tr>
+      <tr><td>"AI-generated code must be reviewed for security issues"</td><td>The PR review template doesn't mention AI</td></tr>
+      <tr><td>"Use only approved AI services"</td><td>There is no approved-services list anywhere a developer can find at the moment of decision</td></tr>
+      <tr><td>"Report AI security incidents within 24 hours"</td><td>There is no defined channel, runbook, or first-step instruction</td></tr>
+    </tbody>
+  </table>
+
+  <p>The gap between these two columns is where compliance actually lives. Or rather, it's where compliance fails to live.</p>
+
+  <h2>What I noticed at one company</h2>
+
+  <p>I'll spare you the details, but the basic shape was this: a Microsoft Dynamics ISV — about 60 engineers, regulated customers in finance, taking AI seriously enough to write a real policy. The policy was good. Sixteen pages, written by a thoughtful security person, signed off by leadership. It addressed bring-your-own-AI, third-party tool review, customer data prohibition, incident response. By 2026 standards, it was above average for a company that size.</p>
+
+  <p>Then I looked at what was actually deployed. There was no <code>AGENTS.md</code> file in any of the repos. The pre-commit hooks ran linting and that was it. CI was Azure Pipelines with no AI-specific gates. The pull request template was a six-line template from 2019 that didn't mention AI. The incident response runbook covered ransomware and DDoS but had nothing about an engineer pasting customer records into Claude.</p>
+
+  <p>Notice that none of this is a failure of the policy. The policy had all the right concepts. The failure was that the policy lived in <code>.docx</code> and the work lived in <code>git</code>, and nothing bridged them. The senior engineer who wrote the policy didn't have the right tooling to translate it into enforcement scaffolding. The platform team didn't have time to read a sixteen-page document and figure out what to build. So nothing got built. The policy was a document. The work was a separate thing.</p>
+
+  <p>This pattern is everywhere. I've seen it at startups and mid-market companies. I've seen it at firms with paid GRC platforms — the GRC tool tracks whether the policy <em>exists</em>, not whether it's <em>enforced</em>. The dashboard turns green when the document is signed; it stays green forever.</p>
+
+  <h2>What "enforcement" actually means</h2>
+
+  <p>When I say "enforcement scaffolding," I mean a specific list of artifacts that have to exist in the engineering surface area for a policy to actually have effect:</p>
+
+  <ul>
+    <li><strong>An <code>AGENTS.md</code> file</strong> at the root of every repo, telling AI coding assistants the project's specific rules — what data classes are prohibited, what review process applies to AI-generated code, what the incident response path is. Modern AI tools (Claude, Cursor, Copilot) read these files automatically.</li>
+    <li><strong>Pre-commit hooks</strong> that scan staged changes for the patterns the policy prohibits — secrets, customer identifiers, hardcoded credentials, references to non-approved services.</li>
+    <li><strong>CI pipeline gates</strong> that re-run those checks server-side, because pre-commit hooks can be bypassed with <code>--no-verify</code> and any policy that depends on developer cooperation is no policy at all.</li>
+    <li><strong>A pull request template</strong> that asks the right AI-specific questions: "did this change include AI-generated code?", "did the change introduce any new third-party AI service calls?", "is the AI content guard passing?"</li>
+    <li><strong>An incident response runbook</strong> that the on-call engineer can actually find in the moment, with named playbooks for the scenarios most likely to happen — customer data leak, secrets exposure, agent misbehavior, prompt injection.</li>
+    <li><strong>Redirector files</strong> for AI assistants that don't natively read <code>AGENTS.md</code> (<code>CLAUDE.md</code>, <code>.github/copilot-instructions.md</code>) so the same rules apply across whichever tool the developer is using.</li>
+  </ul>
+
+  <p>That's six concrete artifacts, each one a small file, none of them difficult to author <em>if you know exactly what they should say.</em> The hard part is the translation from policy prose to working artifact. That's the gap.</p>
+
+  <h2>Why nothing currently bridges it</h2>
+
+  <p>There are tools that help you <em>write</em> the policy — policy templates, ChatGPT prompts that generate first drafts. There are tools that <em>track</em> the policy — GRC platforms that record whether it exists and who has signed off. There are tools that <em>scan for compliance violations</em> after the fact — DLP systems, SIEM rules.</p>
+
+  <p>None of these bridge the gap between the document and the commit. The document gets written by Legal. The commit happens in git. The intervening step — turning the document into something git can act on — is left to "the security team will figure it out," and most security teams are too small and too busy to spend a week on it for every policy.</p>
+
+  <p>What you need is a tool that does the translation. You give it the policy. It gives you the working enforcement scaffolding, tailored to your stack, ready to commit.</p>
+
+  <p>That's PolicyForge.</p>
+
+  <h2>What it does, specifically</h2>
+
+  <p>PolicyForge takes an AI usage policy as input — markdown, plain text, or Word document — and does two things:</p>
+
+  <p><strong>First, it reviews the policy</strong> against a transparent baseline of rules cited from named public frameworks: NIST AI Risk Management Framework, OWASP LLM Top 10, ISO/IEC 42001, EU AI Act. Every finding is tied to a specific rule; every rule is tied to a specific framework. The review tells you what the policy covers, what it partially covers, and what's missing entirely. The output is a severity-rated report you can act on.</p>
+
+  <p><strong>Second, if you ask it to, it generates the enforcement scaffolding</strong> — the six artifacts above, tailored to your stack. Tell it you're a TypeScript shop using GitHub Actions and AWS Secrets Manager; it generates Husky-based pre-commit hooks, a GitHub Actions workflow, an AGENTS.md tuned to those tools, and a runbook scaffold. Tell it you're .NET on Azure DevOps; it generates Husky.NET hooks and an Azure pipeline template. The output is a zip you can drop into a repo.</p>
+
+  <p>What makes the project credible — to me, and I hope to the people who try it — is that the baseline is the project's defensibility, not its features. The features are easy. Anyone can write a tool that generates files. The hard, important, ongoing work is keeping the baseline current, well-cited, and trustworthy. That's where the actual value sits.</p>
+
+  <h2>What it doesn't do</h2>
+
+  <p>PolicyForge is not legal advice. It identifies gaps against published frameworks; it doesn't certify regulatory compliance. The output of every review includes that disclaimer in its first paragraph.</p>
+
+  <p>PolicyForge is not a replacement for human security expertise. A staff security engineer reading your policy will catch things the tool won't. The tool's job is to be a competent first pass — to handle the well-trodden ground so the human can spend their time on the parts that actually require judgment.</p>
+
+  <p>PolicyForge is not exhaustive. v0.1 ships with three baselines — AI usage policy (16 rules), secure coding standards (25 rules), and incident response policy (19 rules) — covering the core ground in each. Sixty rules don't cover everything. The engine supports adding categories — vendor risk management, data retention, application privacy are natural next steps — but the project will always be smaller than the actual problem space.</p>
+
+  <p>And critically: PolicyForge is not yet a community. It's a working prototype maintained by one person, which is a known anti-pattern for security tooling. Single-maintainer baselines go stale within a year. The single most important non-code priority for this project is recruiting co-maintainers who will keep the baseline honest and current. If that's interesting to you, the contribution path is documented in the repo.</p>
+
+  <h2>The narrow claim</h2>
+
+  <p>I'm not going to tell you this tool will solve your AI governance problem. The honest claim is much narrower:</p>
+
+  <p>If you have an AI policy and you don't yet have the enforcement scaffolding to make it real, PolicyForge can compress what would be a week of platform-team work into about fifteen minutes of running a CLI and reviewing the output. The output isn't perfect. It's a starting point. But the difference between "starting point" and "nothing" is the entire reason the gap exists.</p>
+
+  <p>If your policy is mostly there but you're not sure where it's weakest, PolicyForge can give you a citable, severity-rated review you can take to leadership without having to commission a security audit.</p>
+
+  <p>That's it. That's the whole pitch. The category doesn't need another tool that promises to revolutionize compliance. It needs a tool that does one specific, narrow, currently-undone job.</p>
+
+  <h2>How to try it</h2>
+
+  <p>Apache 2.0, no paid tier, no accounts, no telemetry. The CLI runs locally — your policy never leaves your machine. The web app holds policies in memory only and writes nothing to disk; Docker compose included if you want to self-host.</p>
+
+  <pre><code>git clone github.com/sadranyi/PolicyForge
+cd PolicyForge && npm install
+node packages/cli/src/index.js wizard</code></pre>
+
+  <p>Or fork the repo, propose a baseline rule, dispute a finding, file an issue. The work that matters most for this project happens in the open, in the issue tracker, in the baseline YAML. That's where you can help.</p>
+
+  <p>The folder is still called <em>Policies — Final</em>. The Word document is still there. But maybe — for the first time — the work it's supposed to govern can actually know what it says.</p>
+
+  <hr class="flourish">
+
+  <div class="post-cta">
+    <div class="post-cta-label">Try the prototype</div>
+    <p class="post-cta-text">Fifteen minutes from policy to working enforcement.</p>
+    <div class="post-cta-buttons">
+      <a href="index.html#try" class="btn btn-primary">Get started</a>
+      <a href="https://github.com/sadranyi/PolicyForge" class="btn btn-secondary">View on GitHub</a>
+    </div>
+  </div>
+
+  <p class="byline">
+    Samuel Adranyi is a systems architect. PolicyForge is open-source under the Apache 2.0 license. The project's baseline methodology, governance model, and dispute process are documented at <a href="https://github.com/sadranyi/PolicyForge">github.com/sadranyi/PolicyForge</a>.
+  </p>
+</article>
+</main>
+
+<footer>
+  © 2026 PolicyForge contributors · <a href="https://github.com/sadranyi/PolicyForge">GitHub</a> · Apache License 2.0
+</footer>
+
+</body>
+</html>

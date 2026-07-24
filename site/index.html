@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PolicyForge — Turn AI policy into agent instructions and CI gates</title>
+<meta name="description" content="Open-source toolkit that bridges the gap between Word-document policies and git commit. Reviews your AI usage, secure coding, and incident response policies against NIST, OWASP, ISO, EU AI Act and more, then generates tailored enforcement scaffolding. Apache 2.0.">
+<meta name="keywords" content="AI policy, secure coding, incident response, NIST, OWASP, AGENTS.md, policy enforcement, security automation, open source">
+
+<!-- Open Graph -->
+<meta property="og:title" content="PolicyForge — Turn AI policy into agent instructions and CI gates">
+<meta property="og:description" content="Reviews AI usage, secure coding, and incident response policies. Generates the enforcement scaffolding that closes the policy-to-commit gap. Cited baselines, Apache 2.0.">
+<meta property="og:type" content="website">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    /* Colors */
+    --teal-deep:    #0f3a3a;
+    --teal-mid:     #1d5757;
+    --teal-bright:  #2d8585;
+    --cream:        #faf6ee;
+    --cream-warm:   #f4ecd8;
+    --paper:        #fffdf6;
+    --terracotta:   #c8553d;
+    --terracotta-d: #a3422f;
+    --charcoal:     #1a1a1a;
+    --charcoal-soft:#3a3a3a;
+    --muted:        #6b6b6b;
+    --rule:         #d8d0bc;
+    --rule-soft:    #e8e1d0;
+
+    /* Severity colors (echoing the runbook palette) */
+    --sev-critical-bg: #f8d7da;
+    --sev-critical-fg: #7f1d1d;
+    --sev-high-bg:     #fed7aa;
+    --sev-high-fg:     #7c2d12;
+    --sev-medium-bg:   #fef3c7;
+    --sev-medium-fg:   #78350f;
+
+    /* Typography */
+    --font-display:  'Fraunces', Georgia, serif;
+    --font-body:     'IBM Plex Sans', system-ui, sans-serif;
+    --font-mono:     'IBM Plex Mono', 'Courier New', monospace;
+
+    /* Spacing */
+    --max-width:     72rem;
+    --gutter:        clamp(1.25rem, 4vw, 2.5rem);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--cream);
+    color: var(--charcoal);
+    line-height: 1.55;
+    font-size: 17px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  /* Subtle paper texture using SVG noise */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.05  0 0 0 0 0.05  0 0 0 0 0.05  0 0 0 0.04 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  main, header, footer { position: relative; z-index: 1; }
+
+  a { color: var(--teal-mid); text-decoration: none; transition: color 120ms ease; }
+  a:hover { color: var(--terracotta); }
+
+  /* === Top bar === */
+  .topbar {
+    border-bottom: 1px solid var(--rule);
+    background: var(--cream);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(8px);
+    background: rgba(250, 246, 238, 0.92);
+  }
+  .topbar-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 1.1rem var(--gutter);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+  .brand {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.35rem;
+    color: var(--teal-deep);
+    letter-spacing: -0.01em;
+  }
+  .brand-mark {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background: var(--terracotta);
+    transform: translateY(-1px);
+  }
+  .brand-version {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+  .nav-links {
+    display: flex;
+    gap: 1.8rem;
+    font-size: 0.92rem;
+  }
+  .nav-links a {
+    color: var(--charcoal-soft);
+    font-weight: 500;
+  }
+  @media (max-width: 700px) {
+    .nav-links { display: none; }
+  }
+
+  /* === Hero === */
+  .hero {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: clamp(3rem, 8vw, 6rem) var(--gutter) clamp(2.5rem, 5vw, 4rem);
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; }
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--terracotta);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 24px;
+    height: 1px;
+    background: var(--terracotta);
+  }
+
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 5.5vw, 3.7rem);
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+    color: var(--teal-deep);
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+    font-variation-settings: "opsz" 144;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--terracotta);
+    font-weight: 500;
+  }
+
+  .hero-lede {
+    font-size: 1.15rem;
+    color: var(--charcoal-soft);
+    line-height: 1.55;
+    margin-bottom: 2rem;
+    max-width: 32rem;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-bottom: 2.5rem;
+  }
+  .btn {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0.8rem 1.4rem;
+    border: none;
+    cursor: pointer;
+    transition: all 150ms ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .btn-primary {
+    background: var(--teal-deep);
+    color: var(--cream);
+  }
+  .btn-primary:hover {
+    background: var(--terracotta);
+    color: white;
+    transform: translateY(-1px);
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--teal-deep);
+    border: 1px solid var(--rule);
+  }
+  .btn-secondary:hover {
+    border-color: var(--teal-deep);
+    background: var(--cream-warm);
+  }
+  .btn-arrow {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    transition: transform 150ms ease;
+  }
+  .btn:hover .btn-arrow {
+    transform: translateX(3px);
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 1.6rem;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule-soft);
+  }
+  .hero-meta span strong {
+    color: var(--teal-deep);
+    font-weight: 500;
+  }
+
+  /* === Hero terminal demo === */
+  .terminal-wrap {
+    box-shadow: 0 24px 48px -16px rgba(15, 58, 58, 0.25),
+                0 8px 16px -8px rgba(15, 58, 58, 0.15);
+    border: 1px solid var(--charcoal);
+    background: var(--charcoal);
+    line-height: 0;
+    overflow: hidden;
+  }
+  .terminal-svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+  }
+  .terminal {
+    background: var(--charcoal);
+    border-radius: 0;
+    overflow: hidden;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    box-shadow: 0 24px 48px -16px rgba(15, 58, 58, 0.25),
+                0 8px 16px -8px rgba(15, 58, 58, 0.15);
+    border: 1px solid var(--charcoal);
+  }
+  .terminal-bar {
+    background: #2a2a2a;
+    padding: 0.65rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .terminal-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #444;
+  }
+  .terminal-bar span:last-child {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: #888;
+  }
+  .terminal-body {
+    padding: 1.4rem 1.3rem 1.5rem;
+    color: #e8e8e8;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    font-family: var(--font-mono);
+  }
+  @media (max-width: 600px) {
+    .terminal-body { font-size: 0.72rem; padding: 1.1rem 1rem; }
+    .code-snippet { font-size: 0.72rem; }
+  }
+  .term-prompt { color: #2d8585; }
+  .term-cmd { color: #f4ecd8; }
+  .term-out { color: #a8a8a8; }
+  .term-ok { color: #7fc080; }
+  .term-warn { color: #e8b665; }
+  .term-crit { color: #d97757; font-weight: 500; }
+  .term-dim { color: #666; }
+  .term-comment { color: #6b8e8e; font-style: italic; }
+  .bar-fill { display: inline-block; }
+  .bar-empty { color: #444; }
+
+  /* === Section base === */
+  section {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: clamp(3.5rem, 7vw, 6rem) var(--gutter);
+  }
+  .section-divider {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+  .section-divider hr {
+    border: none;
+    border-top: 1px solid var(--rule);
+    margin: 0;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--teal-bright);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .section-label::before {
+    content: counter(section, decimal-leading-zero);
+    counter-increment: section;
+    color: var(--terracotta);
+    font-weight: 500;
+  }
+  body { counter-reset: section; }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.9rem, 3.8vw, 2.6rem);
+    line-height: 1.1;
+    color: var(--teal-deep);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.2rem;
+    max-width: 38rem;
+  }
+  .section-intro {
+    font-size: 1.05rem;
+    color: var(--charcoal-soft);
+    max-width: 38rem;
+    margin-bottom: 3rem;
+    line-height: 1.6;
+  }
+
+  /* === The gap section === */
+  .gap-diagram {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0;
+    margin: 3rem 0 1rem;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  @media (max-width: 720px) {
+    .gap-diagram { grid-template-columns: 1fr; }
+    .gap-arrow { padding: 1.5rem 0 !important; }
+  }
+  .gap-side {
+    padding: 2rem 1.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .gap-side:first-child { border-right: 1px dashed var(--rule); }
+  @media (max-width: 720px) {
+    .gap-side:first-child { border-right: none; border-bottom: 1px dashed var(--rule); }
+  }
+  .gap-side-label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .gap-side-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--teal-deep);
+    font-weight: 500;
+    margin-bottom: 0.8rem;
+  }
+  .gap-side-desc {
+    font-size: 0.95rem;
+    color: var(--charcoal-soft);
+    line-height: 1.55;
+  }
+  .gap-side-detail {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+  }
+  .gap-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 1.5rem;
+    background: var(--cream-warm);
+    border-left: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--terracotta);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    min-width: 60px;
+  }
+  @media (max-width: 720px) {
+    .gap-arrow {
+      writing-mode: horizontal-tb;
+      border-left: none;
+      border-right: none;
+      border-top: 1px solid var(--rule);
+      border-bottom: 1px solid var(--rule);
+      min-width: 0;
+    }
+  }
+  .gap-caption {
+    font-size: 0.92rem;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 1.2rem;
+    text-align: center;
+    max-width: 36rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* === How it works (3 steps) === */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 1rem;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  @media (max-width: 800px) {
+    .steps { grid-template-columns: 1fr; }
+  }
+  .step {
+    padding: 2rem 1.8rem;
+    border-right: 1px solid var(--rule);
+    display: flex;
+    flex-direction: column;
+  }
+  .step:last-child { border-right: none; }
+  @media (max-width: 800px) {
+    .step { border-right: none; border-bottom: 1px solid var(--rule); }
+    .step:last-child { border-bottom: none; }
+  }
+  .step-num {
+    font-family: var(--font-display);
+    font-size: 2.6rem;
+    line-height: 1;
+    font-weight: 500;
+    color: var(--terracotta);
+    margin-bottom: 1rem;
+    font-variation-settings: "opsz" 144;
+  }
+  .step-title {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--teal-deep);
+    font-weight: 500;
+    margin-bottom: 0.7rem;
+    line-height: 1.2;
+  }
+  .step-desc {
+    font-size: 0.95rem;
+    color: var(--charcoal-soft);
+    line-height: 1.55;
+    flex-grow: 1;
+  }
+  .step-detail {
+    margin-top: 1.2rem;
+    padding-top: 1.2rem;
+    border-top: 1px dashed var(--rule);
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* === Review preview (the proof) === */
+  .review-grid {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 0;
+    margin-top: 1rem;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  @media (max-width: 880px) {
+    .review-grid { grid-template-columns: 1fr; }
+  }
+  .review-summary {
+    padding: 2rem 1.8rem;
+    border-right: 1px solid var(--rule);
+  }
+  @media (max-width: 880px) {
+    .review-summary { border-right: none; border-bottom: 1px solid var(--rule); }
+  }
+  .review-meta {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+  }
+  .review-recommendation {
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    color: var(--terracotta);
+    line-height: 1.2;
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+  }
+  .severity-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    margin-bottom: 1.5rem;
+  }
+  .sev-row {
+    display: grid;
+    grid-template-columns: 70px 1fr auto;
+    gap: 0.8rem;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+  }
+  .sev-label { color: var(--charcoal-soft); }
+  .sev-bar-track {
+    height: 8px;
+    background: var(--rule-soft);
+    position: relative;
+    overflow: hidden;
+  }
+  .sev-bar-fill {
+    height: 100%;
+    transition: width 800ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .sev-bar-fill.critical { background: var(--terracotta); }
+  .sev-bar-fill.high     { background: #e8a060; }
+  .sev-bar-fill.medium   { background: #d4ad58; }
+  .sev-count {
+    color: var(--muted);
+    font-size: 0.74rem;
+    text-align: right;
+  }
+
+  .review-finding {
+    padding: 2rem 1.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .finding-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .severity-pill {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.6rem;
+    border-radius: 2px;
+  }
+  .severity-pill.critical {
+    background: var(--sev-critical-bg);
+    color: var(--sev-critical-fg);
+  }
+  .severity-pill.high {
+    background: var(--sev-high-bg);
+    color: var(--sev-high-fg);
+  }
+  .severity-pill.medium {
+    background: var(--sev-medium-bg);
+    color: var(--sev-medium-fg);
+  }
+  .finding-rule-id {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .finding-title {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--teal-deep);
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .finding-evidence {
+    font-size: 0.92rem;
+    color: var(--charcoal-soft);
+    line-height: 1.55;
+    padding: 0.7rem 1rem;
+    background: var(--cream-warm);
+    border-left: 3px solid var(--terracotta);
+  }
+  .finding-citations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--rule);
+  }
+  .citation-tag {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--teal-mid);
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+
+  /* === Trust / why section === */
+  .trust-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    margin-top: 1rem;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  @media (max-width: 700px) {
+    .trust-grid { grid-template-columns: 1fr; }
+  }
+  .trust-item {
+    padding: 2rem 1.8rem;
+    border-right: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+  }
+  .trust-item:nth-child(2n) { border-right: none; }
+  .trust-item:nth-last-child(-n+2):not(:nth-last-child(odd)) { border-bottom: none; }
+  .trust-item:last-child { border-bottom: none; }
+  @media (max-width: 700px) {
+    .trust-item { border-right: none; }
+    .trust-item:not(:last-child) { border-bottom: 1px solid var(--rule); }
+  }
+  .trust-glyph {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--terracotta);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+  .trust-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--teal-deep);
+    font-weight: 500;
+    margin-bottom: 0.6rem;
+    line-height: 1.25;
+  }
+  .trust-desc {
+    font-size: 0.93rem;
+    color: var(--charcoal-soft);
+    line-height: 1.55;
+  }
+
+  /* === Frameworks bar === */
+  .frameworks {
+    background: var(--teal-deep);
+    color: var(--cream);
+    padding: 3rem var(--gutter);
+    margin: 0;
+  }
+  .frameworks-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+  .frameworks-label {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #80b0b0;
+    margin-bottom: 1.2rem;
+  }
+  .frameworks-list {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    margin-top: 1.5rem;
+  }
+  @media (max-width: 700px) {
+    .frameworks-list { grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+  }
+  .framework {
+    border-top: 1px solid #2d6060;
+    padding-top: 1rem;
+  }
+  .framework-name {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    color: var(--cream);
+    margin-bottom: 0.3rem;
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .framework-desc {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: #a8c8c8;
+    line-height: 1.4;
+  }
+
+  /* === Honest section === */
+  .honest {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 2.5rem 2.2rem;
+    margin-top: 1rem;
+  }
+  .honest-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    margin-top: 1.5rem;
+  }
+  .honest-item {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.2rem;
+    align-items: start;
+    padding-bottom: 1.4rem;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .honest-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .honest-marker {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--terracotta);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    padding-top: 0.15rem;
+    white-space: nowrap;
+  }
+  .honest-text {
+    color: var(--charcoal-soft);
+    font-size: 0.97rem;
+    line-height: 1.55;
+  }
+  .honest-text strong {
+    color: var(--teal-deep);
+    font-weight: 600;
+  }
+
+  /* === Try it section === */
+  .try-section {
+    background: var(--cream-warm);
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: clamp(3.5rem, 7vw, 6rem) var(--gutter);
+    margin: 0;
+  }
+  .try-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+  .try-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+  @media (max-width: 800px) {
+    .try-grid { grid-template-columns: 1fr; }
+  }
+  .try-card-label {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--terracotta);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.7rem;
+  }
+  .try-card-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    color: var(--teal-deep);
+    font-weight: 500;
+    margin-bottom: 0.7rem;
+  }
+  .try-card-desc {
+    font-size: 0.93rem;
+    color: var(--charcoal-soft);
+    line-height: 1.55;
+    margin-bottom: 1.4rem;
+    flex-grow: 1;
+  }
+  .code-snippet {
+    background: var(--charcoal);
+    color: var(--cream);
+    padding: 1rem 1.1rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    margin-bottom: 1.2rem;
+    white-space: pre;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .try-card {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 2rem 1.8rem;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .code-snippet .cmt { color: #6b8e8e; font-style: italic; }
+  .code-snippet .prompt { color: #2d8585; }
+  .code-snippet .var { color: #e8b665; }
+
+  /* === FAQ === */
+  .faq-list {
+    margin-top: 1rem;
+    border-top: 1px solid var(--rule);
+  }
+  .faq-item {
+    border-bottom: 1px solid var(--rule);
+    padding: 1.5rem 0;
+  }
+  .faq-q {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    color: var(--teal-deep);
+    font-weight: 500;
+    margin-bottom: 0.6rem;
+    line-height: 1.3;
+  }
+  .faq-a {
+    color: var(--charcoal-soft);
+    font-size: 0.97rem;
+    line-height: 1.6;
+  }
+  .faq-a a {
+    color: var(--terracotta);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+
+  /* === Footer === */
+  footer {
+    background: var(--teal-deep);
+    color: var(--cream);
+    padding: 3rem var(--gutter) 2rem;
+    margin-top: 0;
+  }
+  .footer-inner {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 2.5rem;
+  }
+  @media (max-width: 800px) {
+    .footer-inner { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 480px) {
+    .footer-inner { grid-template-columns: 1fr; }
+  }
+  .footer-brand {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--cream);
+    margin-bottom: 0.7rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .footer-brand .brand-mark {
+    background: var(--terracotta);
+  }
+  .footer-tagline {
+    font-size: 0.92rem;
+    color: #a8c8c8;
+    line-height: 1.5;
+    max-width: 22rem;
+  }
+  .footer-section h4 {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: #80b0b0;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    font-weight: 500;
+  }
+  .footer-section ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .footer-section a {
+    color: var(--cream);
+    font-size: 0.92rem;
+  }
+  .footer-section a:hover {
+    color: var(--terracotta);
+  }
+  .footer-bottom {
+    max-width: var(--max-width);
+    margin: 2.5rem auto 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid #2d6060;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: #a8c8c8;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Subtle entrance for hero */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero > * { animation: fadeUp 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+  .hero-text > *:nth-child(1) { animation-delay: 0ms; }
+  .hero-text > *:nth-child(2) { animation-delay: 80ms; }
+  .hero-text > *:nth-child(3) { animation-delay: 160ms; }
+  .hero-text > *:nth-child(4) { animation-delay: 240ms; }
+  .hero-text > *:nth-child(5) { animation-delay: 320ms; }
+  .terminal { animation-delay: 200ms; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      PolicyForge
+      <span class="brand-version">v0.1</span>
+    </div>
+    <nav class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#review">Review output</a>
+      <a href="#trust">Why trust it</a>
+      <a href="#try">Try it</a>
+      <a href="https://github.com/sadranyi/PolicyForge" target="_blank" rel="noopener">GitHub →</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-text">
+      <div class="eyebrow">Open source · Apache 2.0</div>
+      <h1>Bridge the gap between your AI policy and <em>git&nbsp;commit</em>.</h1>
+      <p class="hero-lede">
+        Most organizations have a folder of PDFs that say <em>"this is our policy"</em> and an engineering reality where those policies are unenforced. PolicyForge reviews your AI usage, secure coding, and incident response policies against published frameworks, then generates the agent instructions, in-repo standards, pre-commit hooks, and CI gates that actually enforce them.
+      </p>
+      <div class="hero-cta">
+        <a href="#try" class="btn btn-primary">Try the prototype <span class="btn-arrow">→</span></a>
+        <a href="https://github.com/sadranyi/PolicyForge" class="btn btn-secondary" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+      <div class="hero-meta">
+        <span><strong>3</strong> baselines</span>
+        <span><strong>60</strong> rules</span>
+        <span><strong>14</strong> cited frameworks</span>
+        <span><strong>0</strong> tracking</span>
+      </div>
+    </div>
+
+    <div class="terminal-wrap">
+      <object type="image/svg+xml" data="demo.svg" class="terminal-svg" aria-label="Animated demo of the PolicyForge wizard">
+        <!-- Fallback for environments that don't render SVG animations -->
+        <div class="terminal" role="img" aria-label="PolicyForge CLI output: 16 rules loaded, 3 critical gaps found, recommendation: material revision required">
+          <div class="terminal-bar">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span>policyforge — wizard</span>
+          </div>
+          <div class="terminal-body">
+<span class="term-prompt">$</span> <span class="term-cmd">npx policyforge wizard</span>
+<span class="term-out">Loading baseline... done (16 rules)</span>
+<span class="term-out">Running review...  done</span>
+
+  Critical  <span class="term-crit">██▓░░░░░</span>   2/6 satisfied · <span class="term-crit">3 gaps</span>
+  High      <span class="term-warn">██░░░░░░</span>   2/8 satisfied · <span class="term-warn">6 gaps</span>
+  Medium    <span class="bar-empty">░░░░░░░░</span>   0/2 satisfied · <span class="term-warn">2 gaps</span>
+
+  Recommendation: <span class="term-crit">material revision required</span>
+
+<span class="term-ok">Done — your toolkit is ready to commit.</span>
+          </div>
+        </div>
+      </object>
+    </div>
+  </section>
+
+  <div class="section-divider"><hr></div>
+
+  <!-- THE GAP -->
+  <section id="problem">
+    <div class="section-label">The gap</div>
+    <h2 class="section-title">Compliance dies between the document and the commit.</h2>
+    <p class="section-intro">
+      The work of writing a policy and the work of enforcing it sit in different worlds, owned by different teams, expressed in different formats. The policy says <em>"don't paste customer data into AI tools"</em>; the developer's IDE has no idea that rule exists. PolicyForge closes that loop.
+    </p>
+
+    <div class="gap-diagram">
+      <div class="gap-side">
+        <div class="gap-side-label">What you have</div>
+        <div class="gap-side-title">A policy document</div>
+        <p class="gap-side-desc">
+          Reviewed by Legal. Approved by leadership. Stored in a SharePoint folder named "Policies — Final."
+        </p>
+        <div class="gap-side-detail">// AI_Usage_Policy_v6_FINAL_v3.docx</div>
+      </div>
+      <div class="gap-arrow">⟶ The void ⟶</div>
+      <div class="gap-side">
+        <div class="gap-side-label">What you need</div>
+        <div class="gap-side-title">Working enforcement</div>
+        <p class="gap-side-desc">
+          Agent instructions, pre-commit hooks, CI gates, an incident runbook — all aligned with the policy and dropped into the repos where work actually happens.
+        </p>
+        <div class="gap-side-detail">// AGENTS.md, .husky/, ai-policy-gates.yml</div>
+      </div>
+    </div>
+    <p class="gap-caption">
+      Until something bridges this gap, the policy is decorative.
+    </p>
+  </section>
+
+  <div class="section-divider"><hr></div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">Three steps. About fifteen minutes.</h2>
+    <p class="section-intro">
+      No accounts, no telemetry. The CLI runs locally; the web app keeps everything in memory. Your policy never leaves your machine unless you choose to host it elsewhere.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-title">Upload your policy</div>
+        <p class="step-desc">
+          Markdown, plain text, or Word document. PolicyForge extracts the policy text and runs it against a transparent baseline of rules cited from named public frameworks.
+        </p>
+        <div class="step-detail">
+          .md · .txt · .docx<br>
+          PDFs explicitly rejected — extracted text is too unreliable to review against.
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-title">Read the review</div>
+        <p class="step-desc">
+          A severity-rated report tells you which rules your policy satisfies, which it partially addresses, and which are missing entirely. Every finding cites a specific rule, every rule cites a specific framework.
+        </p>
+        <div class="step-detail">
+          Critical · High · Medium gaps<br>
+          Recommendation: <span style="color: var(--terracotta);">material revision · minor revision · approved</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-title">Generate the toolkit</div>
+        <p class="step-desc">
+          Answer four questions about your stack — language, CI system, secret store, enforcement strictness — and PolicyForge generates ten files tailored to your environment, ready to drop into a repo.
+        </p>
+        <div class="step-detail">
+          AGENTS.md · pre-commit hooks<br>
+          AI content guard · CI gates · runbook scaffold
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"><hr></div>
+
+  <!-- REVIEW PREVIEW -->
+  <section id="review">
+    <div class="section-label">What the review looks like</div>
+    <h2 class="section-title">Findings you can act on, with citations you can defend.</h2>
+    <p class="section-intro">
+      Every observation tells you the rule that fired, the evidence it found (or didn't), and the framework it traces back to. Below: a real finding from running PolicyForge against an example policy.
+    </p>
+
+    <div class="review-grid">
+      <div class="review-summary">
+        <div class="review-meta">Acme Corp · AI Usage Policy v2</div>
+        <div class="review-recommendation">Material revision required before adoption.</div>
+        <div class="severity-bars">
+          <div class="sev-row">
+            <span class="sev-label">Critical</span>
+            <div class="sev-bar-track"><div class="sev-bar-fill critical" style="width: 50%"></div></div>
+            <span class="sev-count">3 of 6 gaps</span>
+          </div>
+          <div class="sev-row">
+            <span class="sev-label">High</span>
+            <div class="sev-bar-track"><div class="sev-bar-fill high" style="width: 75%"></div></div>
+            <span class="sev-count">6 of 8 gaps</span>
+          </div>
+          <div class="sev-row">
+            <span class="sev-label">Medium</span>
+            <div class="sev-bar-track"><div class="sev-bar-fill medium" style="width: 100%"></div></div>
+            <span class="sev-count">2 of 2 gaps</span>
+          </div>
+        </div>
+        <p style="font-size: 0.88rem; color: var(--muted); line-height: 1.55;">
+          The summary is the cover. The detail — one entry like the one shown to the right, for each rule — is what your security team uses to plan the next revision.
+        </p>
+      </div>
+
+      <div class="review-finding">
+        <div class="finding-header">
+          <span class="severity-pill critical">Critical</span>
+          <span class="finding-rule-id">foundational-customer-data-prohibition</span>
+        </div>
+        <div class="finding-title">Policy must explicitly prohibit pasting customer data into any AI service.</div>
+        <p class="finding-evidence">
+          <strong>Evidence found:</strong> Policy mentions "sensitive data" generally but does not explicitly call out customer data. No examples of prohibited data classes. No distinction between personal and enterprise AI accounts.
+        </p>
+        <p style="font-size: 0.93rem; color: var(--charcoal-soft); line-height: 1.55;">
+          <strong style="color: var(--teal-deep);">Suggested resolution:</strong> Add an explicit prohibition naming customer data, financial records, and PII. Distinguish between personal accounts (data may train models) and enterprise accounts (tenant-bound, no training).
+        </p>
+        <div class="finding-citations">
+          <span class="citation-tag">NIST AI RMF · GOVERN-1.4</span>
+          <span class="citation-tag">OWASP LLM06</span>
+          <span class="citation-tag">EU AI Act · Art. 10</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FRAMEWORKS BAR -->
+<section class="frameworks">
+  <div class="frameworks-inner">
+    <div class="frameworks-label">Baseline cited from</div>
+    <div class="frameworks-list">
+      <div class="framework">
+        <div class="framework-name">NIST AI RMF 1.0</div>
+        <div class="framework-desc">AI Risk Management Framework + companion documents</div>
+      </div>
+      <div class="framework">
+        <div class="framework-name">OWASP LLM Top 10</div>
+        <div class="framework-desc">Top 10 risks for Large Language Model applications</div>
+      </div>
+      <div class="framework">
+        <div class="framework-name">ISO/IEC 42001</div>
+        <div class="framework-desc">AI management system standard</div>
+      </div>
+      <div class="framework">
+        <div class="framework-name">EU AI Act</div>
+        <div class="framework-desc">Regulation EU 2024/1689</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main>
+
+  <!-- WHY TRUST IT -->
+  <section id="trust">
+    <div class="section-label">Why trust this</div>
+    <h2 class="section-title">A tool that reviews policies has to earn the right to do so.</h2>
+    <p class="section-intro">
+      The defensibility of PolicyForge isn't the code — it's the baseline the code measures against, and the governance that keeps it current.
+    </p>
+
+    <div class="trust-grid">
+      <div class="trust-item">
+        <div class="trust-glyph">— 01</div>
+        <div class="trust-title">Citations are mandatory.</div>
+        <p class="trust-desc">
+          Every rule in the baseline must cite a named, public framework. The loader rejects rules without citations — it's enforced in code, not convention. Vendor whitepapers and individual blog posts are explicitly not acceptable sources.
+        </p>
+      </div>
+      <div class="trust-item">
+        <div class="trust-glyph">— 02</div>
+        <div class="trust-title">The baseline is auditable.</div>
+        <p class="trust-desc">
+          The full set of rules lives in one YAML file in the repository. You can read it, fork it, propose changes, or run a fork against your own policy. There's no proprietary scoring engine behind the curtain.
+        </p>
+      </div>
+      <div class="trust-item">
+        <div class="trust-glyph">— 03</div>
+        <div class="trust-title">No accounts, no tracking.</div>
+        <p class="trust-desc">
+          The CLI runs locally; the web app holds policies in memory only and writes nothing to disk on the server. Self-host it on your own infrastructure if your organization requires that — Docker compose included.
+        </p>
+      </div>
+      <div class="trust-item">
+        <div class="trust-glyph">— 04</div>
+        <div class="trust-title">Apache 2.0, no paid tier.</div>
+        <p class="trust-desc">
+          A tool that finds problems with your policy and then sells you the fix has a conflict of interest. PolicyForge avoids it by being free, end to end. The toolkit it generates is yours to modify and ship.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"><hr></div>
+
+  <!-- HONEST -->
+  <section id="honest">
+    <div class="section-label">An honest accounting</div>
+    <h2 class="section-title">What this tool isn't.</h2>
+    <p class="section-intro">
+      The category is too important to oversell. Here is what PolicyForge does <em>not</em> do, said plainly.
+    </p>
+
+    <div class="honest">
+      <div class="honest-list">
+        <div class="honest-item">
+          <div class="honest-marker">Not legal advice.</div>
+          <p class="honest-text">
+            PolicyForge identifies gaps against published frameworks. It does not certify compliance. <strong>Pair its output with review by your Legal and Compliance teams.</strong> The tool is opinionated about technical enforcement — it doesn't have an opinion about your jurisdiction's regulatory scope.
+          </p>
+        </div>
+        <div class="honest-item">
+          <div class="honest-marker">Not a replacement.</div>
+          <p class="honest-text">
+            A staff security engineer reading your policy will catch things this tool won't. <strong>Use it as a starting point, not an endpoint.</strong> The most useful workflow is: run PolicyForge first, then have a human review the findings and add their own.
+          </p>
+        </div>
+        <div class="honest-item">
+          <div class="honest-marker">Not a community yet.</div>
+          <p class="honest-text">
+            v0.1 is a working prototype. The single-maintainer pattern for security tooling is a known anti-pattern — baselines go stale within a year without active stewardship. <strong>The project actively needs co-maintainers, and treating it as production-ready before that exists would be irresponsible.</strong>
+          </p>
+        </div>
+        <div class="honest-item">
+          <div class="honest-marker">Not exhaustive.</div>
+          <p class="honest-text">
+            Sixty rules across three baselines cover the well-trodden ground in AI usage policy, secure coding standards, and incident response. They don't cover everything. The engine supports adding more — vendor risk management, data retention, application privacy — the YAML rules need to be authored. Contributions welcome.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- TRY IT -->
+<section class="try-section" id="try">
+  <div class="try-inner">
+    <div class="section-label" style="margin-bottom: 1.2rem;">Get started</div>
+    <h2 class="section-title">Two ways in. Both free.</h2>
+    <p class="section-intro">
+      The CLI is the canonical engine — the privacy-friendly path. The web app is the same engine wrapped in a browser interface, useful for sharing the experience with non-technical stakeholders.
+    </p>
+
+    <div class="try-grid">
+      <div class="try-card">
+        <div class="try-card-label">Option 1 — CLI</div>
+        <div class="try-card-title">Run it locally.</div>
+        <p class="try-card-desc">
+          Clone the repo, install dependencies, point it at a policy file. Nothing leaves your machine.
+        </p>
+        <div class="code-snippet">
+<span class="cmt"># Clone and install</span>
+<span class="prompt">$</span> git clone github.com/<span class="var">sadranyi</span>/PolicyForge
+<span class="prompt">$</span> cd policyforge && npm install
+
+<span class="cmt"># Interactive flow</span>
+<span class="prompt">$</span> node packages/cli/src/index.js wizard
+        </div>
+        <a href="https://github.com/sadranyi/PolicyForge" class="btn btn-secondary" target="_blank" rel="noopener" style="align-self: flex-start;">View on GitHub →</a>
+      </div>
+
+      <div class="try-card">
+        <div class="try-card-label">Option 2 — Self-host the web app</div>
+        <div class="try-card-title">Spin it up with Docker.</div>
+        <p class="try-card-desc">
+          Same engine, browser interface. Useful when you need to walk a policy through with someone who doesn't live in a terminal.
+        </p>
+        <div class="code-snippet">
+<span class="cmt"># Self-host with Docker</span>
+<span class="prompt">$</span> git clone github.com/<span class="var">sadranyi</span>/PolicyForge
+<span class="prompt">$</span> cd policyforge
+<span class="prompt">$</span> docker compose up
+
+<span class="cmt"># Open http://localhost:3000</span>
+        </div>
+        <a href="https://github.com/sadranyi/PolicyForge#getting-started" class="btn btn-secondary" style="align-self: flex-start;">Read the docs →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<main>
+
+  <!-- FAQ -->
+  <section id="faq">
+    <div class="section-label">Common questions</div>
+    <h2 class="section-title">Things you'll probably want to know.</h2>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q">Does my policy get sent to a server somewhere?</div>
+        <p class="faq-a">
+          No. The CLI is fully local. The hosted web app holds uploads in memory only and writes nothing to disk. If your organization needs stronger guarantees than a hosted service can provide, self-host with the included Docker compose file — it runs entirely inside your network.
+        </p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Will the generated toolkit work for my stack?</div>
+        <p class="faq-a">
+          The current build supports TypeScript, C#, Python, Java, and mixed-stack repositories, paired with either GitHub Actions or Azure DevOps. The pre-commit layer uses Husky for Node-based and mixed repos, and Husky.NET for .NET-only repos. If your stack isn't represented, the engine is policy-type agnostic — adding a new stack is a template addition, not a rewrite.
+        </p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">How is this different from a Word-template policy generator?</div>
+        <p class="faq-a">
+          A template generator helps you write the policy. PolicyForge does the opposite — it takes a policy you already have and generates the technical enforcement around it. The two are complementary; PolicyForge is most useful once you have a policy in hand and need to operationalize it.
+        </p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Who maintains the baseline?</div>
+        <p class="faq-a">
+          Currently a single maintainer, which the project treats as a known weakness. The governance model is documented in <a href="https://github.com/sadranyi/PolicyForge/blob/main/docs/BASELINE_METHODOLOGY.md" target="_blank" rel="noopener">BASELINE_METHODOLOGY.md</a> — six-month review cadence, mandatory citations, dispute process. Recruiting co-maintainers is the most important non-code priority for this project right now.
+        </p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I trust the findings against my real policy?</div>
+        <p class="faq-a">
+          You should treat them the way you'd treat the output of a static analysis tool: directionally useful, occasionally wrong, always worth a human review. Every finding cites the specific rule that fired and the framework it traces back to, so you can defend or dispute each one. False positives can be filed as issues; the dispute process is in the methodology doc.
+        </p>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What does PolicyForge cost?</div>
+        <p class="faq-a">
+          Nothing, ever. Apache 2.0, no paid tier, no managed service plans. A tool that finds problems with your policy and then sells you the fix has a conflict of interest the project explicitly avoids by staying free.
+        </p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">
+        <span class="brand-mark"></span>
+        PolicyForge
+      </div>
+      <p class="footer-tagline">
+        Open-source toolkit for bridging the gap between AI policy documents and the engineering work they're meant to govern.
+      </p>
+    </div>
+    <div class="footer-section">
+      <h4>Project</h4>
+      <ul>
+        <li><a href="https://github.com/sadranyi/PolicyForge" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://github.com/sadranyi/PolicyForge#readme">Docs</a></li>
+        <li><a href="https://github.com/sadranyi/PolicyForge/blob/main/docs/BASELINE_METHODOLOGY.md">Baseline methodology</a></li>
+        <li><a href="https://github.com/sadranyi/PolicyForge/releases">Changelog</a></li>
+      </ul>
+    </div>
+    <div class="footer-section">
+      <h4>Community</h4>
+      <ul>
+        <li><a href="https://github.com/sadranyi/PolicyForge/blob/main/CONTRIBUTING.md">Contributing</a></li>
+        <li><a href="https://github.com/sadranyi/PolicyForge/issues/new?labels=baseline-rule">Propose a rule</a></li>
+        <li><a href="https://github.com/sadranyi/PolicyForge/issues/new?labels=dispute-finding">Dispute a finding</a></li>
+        <li><a href="https://github.com/sadranyi/PolicyForge/discussions">Discussions</a></li>
+      </ul>
+    </div>
+    <div class="footer-section">
+      <h4>Legal</h4>
+      <ul>
+        <li><a href="https://github.com/sadranyi/PolicyForge/blob/main/LICENSE">License (Apache 2.0)</a></li>
+        <li><a href="https://github.com/sadranyi/PolicyForge#what-it-is-not">Not legal advice</a></li>
+        <li><a href="https://github.com/sadranyi/PolicyForge#privacy">Privacy</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 PolicyForge contributors. Apache License 2.0.</span>
+    <span>Built in the open. Cite your sources.</span>
+  </div>
+</footer>
+
+</body>
+</html>

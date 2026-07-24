@@ -1,0 +1,757 @@
+# PolicyForge baseline — Secure coding standards
+# ===============================================
+# This file defines the rules PolicyForge applies when reviewing secure
+# coding standards (the policy document, not the codebase).
+#
+# Intentional scope: this baseline reviews whether a written secure coding
+# standard *adequately addresses* common topic areas. It does NOT verify
+# that source code is actually secure — that's what SAST/DAST/SCA tools do.
+# The boundary matters: a policy that says "use parameterized queries" is
+# all this baseline can detect; a policy that catches every SQL injection
+# in your codebase is a different category of tool.
+#
+# Schema version: 1.0 (compatible with ai-usage-policy.yaml)
+# License: Apache-2.0
+
+baseline:
+  id: secure-coding-standards
+  name: Secure Coding Standards Baseline
+  version: 1.0.0
+  last_reviewed: 2026-04-30
+  description: |
+    Reviews secure coding standards against published frameworks for
+    completeness across the common topic areas: input handling,
+    authentication, authorization, cryptography, secret management,
+    dependency management, and assurance process.
+
+    Designed to identify policy-level gaps — a missing topic, an under-
+    specified control — rather than implementation defects. A staff
+    security engineer reading the policy will catch nuances this baseline
+    won't. Use it as a competent first pass, not an endpoint.
+
+  citations:
+    - id: owasp-asvs
+      name: OWASP Application Security Verification Standard
+      version: "5.0"
+      url: https://owasp.org/www-project-application-security-verification-standard/
+    - id: owasp-top10
+      name: OWASP Top 10
+      version: "2021"
+      url: https://owasp.org/www-project-top-ten/
+    - id: nist-ssdf
+      name: NIST Secure Software Development Framework
+      version: "SP 800-218 v1.1"
+      url: https://csrc.nist.gov/publications/detail/sp/800-218/final
+    - id: nist-sp-800-53
+      name: NIST SP 800-53 Security and Privacy Controls
+      version: "Rev. 5"
+      url: https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final
+    - id: cwe-top25
+      name: CWE Top 25 Most Dangerous Software Weaknesses
+      version: "2024"
+      url: https://cwe.mitre.org/top25/
+
+# ============================================================
+# RULES
+# ============================================================
+# Severity rubric for this baseline:
+#   Critical — absence creates direct exposure to a top-prevalence weakness
+#              class (e.g., SQLi, broken auth) or breaks the assurance loop
+#              entirely (e.g., no code review at all).
+#   High     — absence weakens the policy meaningfully but the gap can be
+#              compensated for by other controls or by mature engineering
+#              practice.
+#   Medium   — important to address in next revision; not blocking.
+#   Low      — refinement opportunity.
+
+rules:
+
+  # ============================================================
+  # CATEGORY: Foundational
+  # ============================================================
+  - id: foundational-scope
+    category: Foundational
+    title: Standard declares the languages and platforms it covers
+    description: |
+      A secure coding standard that doesn't name its scope (which languages,
+      which platforms, which kinds of services) ends up either ignored or
+      misapplied. The opening section should explicitly declare scope so
+      teams know whether and how the standard applies to them.
+    severity: High
+    citations:
+      - nist-ssdf
+      - owasp-asvs
+    evidence_patterns:
+      positive:
+        - 'scope.{0,80}(applies|applicable|cover)'
+        - '(this (standard|policy|document)).{0,80}(applies|covers)'
+        - 'applies to.{0,80}(application|service|system|code|language)'
+        - 'in[- ]scope.{0,40}(language|platform|service)'
+    suggested_resolution: |
+      Add a Scope section to the front of the standard naming the languages,
+      runtimes, and service types it applies to (e.g., "This standard applies
+      to all production code written in TypeScript, C#, and Python, and to
+      any service exposed outside the corporate network"). Identify any
+      categories explicitly out of scope.
+
+  - id: foundational-classification-link
+    category: Foundational
+    title: Reference to data classification taxonomy
+    description: |
+      Many controls in a secure coding standard depend on knowing the
+      sensitivity of the data being handled (e.g., logging requirements,
+      encryption requirements, retention). The standard should reference
+      the organization's data classification taxonomy rather than redefining
+      sensitivity levels inline.
+    severity: High
+    citations:
+      - nist-sp-800-53
+      - owasp-asvs
+    evidence_patterns:
+      positive:
+        - 'data classification (policy|standard|taxonomy|framework|tier)'
+        - 'classification (tier|level|category)'
+        - '(sensitive|confidential|restricted) data.{0,80}(classification|tier|level)'
+        - 'public.{0,10}internal.{0,10}confidential'
+    suggested_resolution: |
+      Reference your organization's data classification policy by name and
+      version (or define one in scope of this standard). Map control intensity
+      (encryption, logging, retention) to classification tiers.
+
+  - id: foundational-threat-model
+    category: Foundational
+    title: Threat-modeling requirement for new services
+    description: |
+      Without a stated threat-modeling expectation, security review is
+      reactive — it happens after a finding, not before a design. Modern
+      standards specify when threat modeling is required (typically: new
+      service, significant architectural change) and reference an approach
+      (STRIDE, LINDDUN, attack-tree).
+    severity: High
+    citations:
+      - nist-ssdf
+      - owasp-asvs
+    evidence_patterns:
+      positive:
+        - 'threat model(ing)?'
+        - 'STRIDE'
+        - 'attack (tree|surface) (analysis|review)'
+        - 'security (design )?review.{0,40}(new|architectural|significant)'
+    suggested_resolution: |
+      State when threat modeling is required (e.g., "before any new external-
+      facing service ships, and on any change that introduces a new trust
+      boundary or processes a new data classification tier"). Reference an
+      approach — STRIDE is the most common; LINDDUN if privacy is a primary
+      concern. Identify who owns the threat model and where it is stored.
+
+  # ============================================================
+  # CATEGORY: Input handling
+  # ============================================================
+  - id: input-validation
+    category: Input handling
+    title: Input validation requirement with allowlist principle
+    description: |
+      Input validation is the foundational defense against injection,
+      deserialization, and parser-confusion attacks. The standard must
+      require validation at trust boundaries and should prefer allowlist
+      (positive) validation over denylist.
+    severity: Critical
+    citations:
+      - owasp-asvs
+      - owasp-top10
+      - cwe-top25
+    evidence_patterns:
+      positive:
+        - 'input (validation|validate|validated)'
+        - 'validate.{0,30}(input|all input|user input|untrusted)'
+        - '(allowlist|allow[- ]list|whitelist|positive validation)'
+        - 'reject.{0,40}(invalid|malformed|unexpected) (input|data)'
+      negative:
+        # Mentioned but not actually required
+        - 'input validation may be|input validation should be considered'
+    suggested_resolution: |
+      Require input validation at every trust boundary. Specify allowlist
+      (positive) validation as the default approach, with denylist only as
+      an exception that must be justified. Name the categories that always
+      require validation: HTTP request parameters, file uploads, message
+      queue payloads, deserialized objects, and any data crossing a service
+      boundary.
+
+  - id: input-injection-prevention
+    category: Input handling
+    title: Explicit injection prevention guidance (SQL, command, LDAP, etc.)
+    description: |
+      Injection has been at or near the top of the OWASP Top 10 since the
+      list existed. The standard must explicitly require parameterized
+      queries / prepared statements / safe APIs for the major injection
+      classes — saying "validate input" is not enough.
+    severity: Critical
+    citations:
+      - owasp-top10
+      - owasp-asvs
+      - cwe-top25
+    evidence_patterns:
+      positive:
+        - '(parameterized|prepared) (quer|statement)'
+        - 'sql injection'
+        - '(command|os|shell) injection'
+        - 'safe (api|library|wrapper).{0,40}(query|exec|shell)'
+        - 'orm.{0,30}(parameterized|safe|escape)'
+    suggested_resolution: |
+      Add explicit prohibitions:
+        * SQL: no string-concatenation in queries; use parameterized statements
+          or vetted ORM patterns.
+        * Command execution: no shell=True equivalents on untrusted input;
+          prefer language-native APIs over shelling out.
+        * LDAP, XPath, NoSQL: use library APIs that handle escaping; do not
+          construct queries from untrusted text.
+      Name the approved libraries or framework features for each language
+      in scope.
+
+  - id: input-output-encoding
+    category: Input handling
+    title: Output encoding requirement (XSS prevention)
+    description: |
+      Cross-site scripting prevention requires context-aware output encoding
+      at the rendering layer. The standard must require it for any HTML,
+      JavaScript, attribute, or URL context that includes user-controllable
+      data.
+    severity: Critical
+    citations:
+      - owasp-top10
+      - owasp-asvs
+      - cwe-top25
+    evidence_patterns:
+      positive:
+        - 'output encoding'
+        - '(html|javascript|attribute|url) encoding'
+        - 'context[- ]aware.{0,30}encod'
+        - '(xss|cross[- ]site scripting)'
+        - 'auto[- ]escap'
+    suggested_resolution: |
+      Require context-aware output encoding for any user-controllable data
+      rendered to a browser. Specify the encoding mechanism per template
+      engine in use (e.g., Razor's automatic HTML encoding, React's JSX
+      auto-escaping, server-side template engines with escaping enabled).
+      Prohibit dangerouslySetInnerHTML / equivalents without explicit security
+      review.
+
+  # ============================================================
+  # CATEGORY: Authentication & session
+  # ============================================================
+  - id: auth-strong-authentication
+    category: Authentication
+    title: Authentication requirements with MFA expectation
+    description: |
+      The standard must specify authentication requirements and the
+      expectation of multi-factor authentication for sensitive contexts
+      (admin operations, production access, cryptographic key access).
+    severity: Critical
+    citations:
+      - owasp-asvs
+      - owasp-top10
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - '(multi[- ]factor|2fa|mfa).{0,40}(required|enforced|mandator)'
+        - 'authentication.{0,40}(required|enforced|standard)'
+        - '(passwordless|webauthn|fido)'
+        - 'sso.{0,30}(required|standard|approved)'
+    suggested_resolution: |
+      Require authentication for all non-public endpoints. Require MFA for:
+        * any administrative interface
+        * any access to production systems
+        * any code-signing or key-management interface
+      Reference your SSO / IdP standard. State whether passwordless / WebAuthn
+      is the target end-state.
+
+  - id: auth-password-handling
+    category: Authentication
+    title: Password storage uses an approved hashing algorithm
+    description: |
+      If the application stores passwords (most should not, but some must),
+      the standard should require a memory-hard, salted, modern hashing
+      algorithm. Naming the algorithm closes the gap between "secure
+      passwords" and "actually secure passwords."
+    severity: Critical
+    citations:
+      - owasp-asvs
+      - cwe-top25
+    evidence_patterns:
+      positive:
+        - 'argon2'
+        - 'bcrypt'
+        - 'scrypt'
+        - 'pbkdf2'
+        - '(password|credential) hash.{0,60}(algorithm|standard|approved)'
+        - '(memory[- ]hard|adaptive) (hash|kdf)'
+      negative:
+        # Catch policies that actively *recommend* weak algorithms,
+        # not ones that prohibit them. The positive patterns already
+        # require naming an approved modern algorithm, so this is a
+        # secondary check for explicit bad guidance.
+        - '(use|recommend|allowed|approved|acceptable).{0,30}(md5|sha-?1).{0,40}(password|hash)'
+    suggested_resolution: |
+      If the application stores passwords, require Argon2id (preferred),
+      scrypt, or bcrypt with appropriate parameters. Prohibit MD5, SHA-1,
+      and unsalted SHA-256 for password storage. State minimum work factors
+      and require periodic review of those factors.
+
+  - id: auth-session-management
+    category: Authentication
+    title: Session management requirements (token handling, expiry, revocation)
+    description: |
+      Session management is where most authenticated apps fail in practice.
+      The standard should address session token generation (cryptographically
+      random), storage (HttpOnly, Secure, SameSite), expiry, and revocation.
+    severity: High
+    citations:
+      - owasp-asvs
+      - owasp-top10
+    evidence_patterns:
+      positive:
+        - 'session (token|cookie|management)'
+        - 'httponly|http[- ]only'
+        - 'samesite|same[- ]site'
+        - '(session|token) (expir|timeout|revocation|invalidation)'
+        - '(refresh|access) token.{0,40}(rotation|expir|short[- ]lived)'
+    suggested_resolution: |
+      Specify session management requirements:
+        * Tokens generated with a CSPRNG, minimum 128 bits of entropy
+        * Cookies set with HttpOnly, Secure, and SameSite (Lax or Strict)
+        * Access token TTL bounded; refresh token rotation required
+        * Server-side session invalidation on logout, password change, and
+          permission revocation
+
+  # ============================================================
+  # CATEGORY: Authorization
+  # ============================================================
+  - id: authz-model
+    category: Authorization
+    title: Defined authorization model (RBAC, ABAC, or equivalent)
+    description: |
+      Broken Access Control is OWASP Top 10 #1. A standard that doesn't
+      name its authorization model — RBAC, ABAC, or similar — leaves access
+      decisions to per-developer interpretation, which is exactly the
+      condition broken access control thrives in.
+    severity: Critical
+    citations:
+      - owasp-top10
+      - owasp-asvs
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - '(rbac|role[- ]based access)'
+        - '(abac|attribute[- ]based access)'
+        - 'authorization (model|policy|framework)'
+        - '(least privilege|principle of least)'
+        - 'access control.{0,40}(model|matrix|policy)'
+    suggested_resolution: |
+      Name your authorization model — RBAC, ABAC, ReBAC, or a hybrid — and
+      reference an enforcement mechanism (a policy engine, a framework
+      middleware, or a documented in-code pattern). State the principle of
+      least privilege. Require a periodic access review.
+
+  - id: authz-server-side-checks
+    category: Authorization
+    title: Authorization checks enforced server-side
+    description: |
+      A common authorization failure pattern is checking permissions only
+      in the UI ("hide the button"). The standard should explicitly require
+      server-side enforcement on every protected operation, regardless of
+      what the UI shows.
+    severity: High
+    citations:
+      - owasp-top10
+      - owasp-asvs
+      - cwe-top25
+    evidence_patterns:
+      positive:
+        - 'server[- ]side (authorization|access control|check|enforcement)'
+        - '(authorization|access).{0,40}(every|all) (request|endpoint|operation)'
+        - 'idor|insecure direct object reference'
+        - 'object[- ]level.{0,30}(authorization|access)'
+    suggested_resolution: |
+      Require server-side authorization on every state-changing request and
+      every read of non-public data. Specify object-level checks (the user
+      can not only call this endpoint, but can access this specific object).
+      Call out IDOR (Insecure Direct Object Reference) explicitly as a
+      class to test for.
+
+  # ============================================================
+  # CATEGORY: Cryptography & secrets
+  # ============================================================
+  - id: crypto-approved-algorithms
+    category: Cryptography
+    title: Approved cryptographic algorithms list
+    description: |
+      "Use strong cryptography" is not a control. The standard must name
+      the approved algorithms (and minimum parameters) for the operations
+      developers actually perform: at-rest encryption, in-transit encryption,
+      digital signatures, password hashing, MAC.
+    severity: High
+    citations:
+      - owasp-asvs
+      - nist-sp-800-53
+      - nist-ssdf
+    evidence_patterns:
+      positive:
+        - '(approved|allowed|standard) (cryptographic|cipher|algorithm)'
+        - 'aes[- ]?256'
+        - '(tls|transport layer security) 1\.[23]'
+        - 'rsa.{0,20}(2048|3072|4096)'
+        - '(ecdsa|ed25519|p[- ]?256|p[- ]?384)'
+      negative:
+        - '(des|3des|rc4|md5|sha-?1).{0,40}(allowed|approved|use|acceptable)'
+    suggested_resolution: |
+      Maintain an Approved Cryptographic Algorithms list as part of the
+      standard. Cover at minimum:
+        * Symmetric encryption: AES-256-GCM (or equivalent AEAD)
+        * Asymmetric: RSA-2048+ or ECDSA P-256/P-384 or Ed25519
+        * Hashing: SHA-256+ for general; Argon2/scrypt/bcrypt for passwords
+        * MAC: HMAC-SHA-256+
+        * TLS: 1.2 minimum, 1.3 preferred
+      Prohibit DES, 3DES, RC4, MD5, SHA-1, and TLS < 1.2.
+
+  - id: crypto-key-management
+    category: Cryptography
+    title: Key management — keys never in source, rotation policy stated
+    description: |
+      Cryptographic key management is the most-broken part of most secure
+      coding standards. The standard must require keys be stored in a
+      managed secret store and rotated on a schedule.
+    severity: Critical
+    citations:
+      - owasp-asvs
+      - nist-sp-800-53
+      - cwe-top25
+    evidence_patterns:
+      positive:
+        - '(key vault|secret manager|hsm|kms|key management)'
+        - '(secrets?|keys?) (must not|never|prohibit).{0,40}(source|repo|code|commit)'
+        - 'key rotation'
+        - '(azure key vault|aws kms|hashicorp vault|gcp kms|secret manager)'
+    suggested_resolution: |
+      Require all cryptographic keys and application secrets to be stored
+      in a managed secret store (name the approved ones — Azure Key Vault,
+      AWS KMS / Secrets Manager, HashiCorp Vault, GCP Secret Manager). Prohibit
+      keys in source repositories. State a key-rotation schedule by sensitivity
+      tier.
+
+  - id: crypto-secret-handling-in-code
+    category: Cryptography
+    title: Prohibition on hardcoded secrets and committed credentials
+    description: |
+      A standard that doesn't explicitly prohibit hardcoded secrets implicitly
+      permits them. This is one of the most-common, most-impactful, and
+      most-detectable defects.
+    severity: Critical
+    citations:
+      - owasp-top10
+      - cwe-top25
+      - nist-ssdf
+    evidence_patterns:
+      positive:
+        - '(hardcoded|hard[- ]coded) (secret|credential|password|key|token)'
+        - '(secrets?|credentials?|passwords?|tokens?|keys?).{0,30}(must not|never|prohibit|forbidden).{0,40}(source|code|repo|commit)'
+        - 'secret scanning|gitleaks|trufflehog'
+        - 'pre[- ]commit.{0,40}(secret|credential)'
+    suggested_resolution: |
+      Add an explicit prohibition: "Hardcoded secrets, credentials, API keys,
+      tokens, or private keys in source code or configuration files committed
+      to the repository are forbidden." Reference the secret-scanning tool
+      in your pipeline (gitleaks / TruffleHog / GitHub secret scanning).
+      Specify the remediation path when a secret is committed (rotate
+      immediately, then purge).
+
+  # ============================================================
+  # CATEGORY: Dependencies & supply chain
+  # ============================================================
+  - id: deps-vulnerability-management
+    category: Dependencies
+    title: Dependency vulnerability management — scanning and remediation SLA
+    description: |
+      Most production code is dependencies. A standard that addresses only
+      first-party code ignores the larger attack surface. Required: continuous
+      vulnerability scanning of dependencies and stated SLAs for remediation
+      by severity.
+    severity: Critical
+    citations:
+      - owasp-top10
+      - nist-ssdf
+      - cwe-top25
+    evidence_patterns:
+      positive:
+        - '(dependency|sca|software composition|third[- ]party).{0,40}(scan|review|vulnerab)'
+        - '(dependabot|renovate|snyk|sonatype|owasp dependency check)'
+        - 'cve.{0,40}(remediat|patch|fix|sla)'
+        - 'vulnerability.{0,40}(sla|service level|window|days|patch)'
+    suggested_resolution: |
+      Require continuous dependency scanning (Dependabot, Renovate, Snyk,
+      OWASP Dependency-Check, or equivalent). State remediation SLAs by
+      severity:
+        * Critical CVE: 7 days
+        * High CVE: 30 days
+        * Medium / Low: with next regular release cycle
+      Require build failure on Critical findings. Require an exception
+      process with named approvers for missed SLAs.
+
+  - id: deps-sbom
+    category: Dependencies
+    title: SBOM generation requirement for production artifacts
+    description: |
+      The Log4Shell incident showed that organizations that couldn't
+      enumerate their use of a vulnerable library responded to the incident
+      in days; those that could responded in hours. A modern secure coding
+      standard requires SBOM generation.
+    severity: High
+    citations:
+      - nist-ssdf
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - '(sbom|software bill of materials)'
+        - '(cyclonedx|spdx)'
+        - 'bill of materials.{0,30}(generat|maintain|publish)'
+    suggested_resolution: |
+      Require an SBOM (CycloneDX or SPDX format) be generated as part of the
+      build for every production artifact. State where SBOMs are stored and
+      retention period. Reference the tool in use (Syft, CycloneDX CLI,
+      vendor-native).
+
+  - id: deps-source-trust
+    category: Dependencies
+    title: Approved dependency sources and provenance verification
+    description: |
+      Dependency confusion and typosquatting attacks exploit the gap between
+      "we use npm" and "we use these specific scoped packages from the
+      official registry." The standard should require approved sources and,
+      where possible, signature verification.
+    severity: High
+    citations:
+      - nist-ssdf
+      - owasp-top10
+    evidence_patterns:
+      positive:
+        - '(approved|trusted|allowed) (registry|repository|source|package)'
+        - 'package (signing|signature|verification|provenance)'
+        - '(internal|private) (registry|feed|mirror)'
+        - '(scoped package|namespace).{0,40}(internal|private|company)'
+    suggested_resolution: |
+      Name the approved dependency sources (e.g., npmjs.org official registry,
+      NuGet.org, Maven Central, PyPI). For internal packages, require an
+      internal scope/namespace and an internal feed. Where the ecosystem
+      supports it, require signed packages and provenance verification
+      (Sigstore, npm provenance, PyPI Trusted Publishers).
+
+  # ============================================================
+  # CATEGORY: Logging, error handling, monitoring
+  # ============================================================
+  - id: logging-security-events
+    category: Logging
+    title: Required logging of security-relevant events
+    description: |
+      Without explicit logging requirements, "what happened" forensics are
+      a roll of the dice after an incident. Modern standards require logging
+      of authentication events, authorization failures, privilege changes,
+      and data access for sensitive resources.
+    severity: High
+    citations:
+      - owasp-asvs
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - '(audit|security) (log|logging)'
+        - 'log.{0,40}(authentication|login|logon)'
+        - 'log.{0,40}(authorization|access)'
+        - '(siem|security information)'
+    suggested_resolution: |
+      Require logging of:
+        * Authentication events — success and failure, with source IP
+        * Authorization failures (not successes for general endpoints, to
+          avoid log volume)
+        * Privilege escalations and role changes
+        * Access to data classified as Confidential or higher
+        * Cryptographic key usage events
+      State retention period and forwarding to SIEM.
+
+  - id: logging-sensitive-data
+    category: Logging
+    title: Prohibition on logging sensitive data (secrets, PII, full payloads)
+    description: |
+      Logs are the second-most-common location of leaked secrets and PII
+      after source code itself. The standard must explicitly prohibit
+      logging credentials, tokens, full payloads of sensitive endpoints,
+      and PII unless redacted.
+    severity: High
+    citations:
+      - owasp-asvs
+      - nist-sp-800-53
+      - cwe-top25
+    evidence_patterns:
+      positive:
+        - 'log.{0,40}(must not|never|prohibit).{0,40}(secret|credential|token|password|pii)'
+        - '(redact|mask|sanitize).{0,30}(log|logging)'
+        - 'sensitive (data|information).{0,40}(log|logged)'
+    suggested_resolution: |
+      Add explicit prohibitions:
+        * Authentication credentials, session tokens, API keys: never logged.
+        * PII and Confidential-class data: redacted before logging.
+        * Full request/response payloads of sensitive endpoints: redacted
+          or summarized.
+      Specify the redaction utility in use and require unit-test coverage
+      for redaction in any new logger.
+
+  - id: error-handling
+    category: Logging
+    title: Error handling avoids information disclosure
+    description: |
+      Stack traces, internal hostnames, framework versions, and detailed
+      DB error messages exposed to end users are a common reconnaissance
+      vector. The standard should require generic error messages externally
+      with detail logged internally.
+    severity: Medium
+    citations:
+      - owasp-asvs
+      - cwe-top25
+    evidence_patterns:
+      positive:
+        - 'error (message|response).{0,60}(generic|sanitized|user[- ]friendly)'
+        - 'stack trace.{0,40}(must not|never|prohibit|disabled).{0,40}(production|user|client)'
+        - 'information disclosure'
+        - 'verbose error|detailed error.{0,40}(disabled|production)'
+    suggested_resolution: |
+      Require generic error responses to external callers (a correlation ID,
+      an HTTP status, no internal detail). Detailed errors with stack traces
+      go to internal logs only. Disable framework debug pages in production
+      builds. Require the standard error-response shape for the language(s)
+      in scope.
+
+  # ============================================================
+  # CATEGORY: Process & assurance
+  # ============================================================
+  - id: process-code-review
+    category: Process
+    title: Mandatory code review with security-aware reviewer
+    description: |
+      No technical control compensates fully for the absence of a second set
+      of eyes on every change. The standard must require code review and
+      should specify when a security-aware reviewer is required (high-risk
+      changes, security-sensitive files).
+    severity: Critical
+    citations:
+      - nist-ssdf
+      - owasp-asvs
+    evidence_patterns:
+      positive:
+        - '(code|peer) review.{0,30}(required|mandatory|every|all)'
+        - 'pull request.{0,30}(approval|review|reviewer)'
+        - 'security[- ]aware reviewer|security review'
+        - 'two[- ]reviewer|two reviewers|second reviewer'
+    suggested_resolution: |
+      Require a code review for every change to main / production-bound
+      branches. Define the categories that require an additional security-
+      aware reviewer:
+        * Authentication / authorization code paths
+        * Cryptographic operations
+        * External integrations and trust-boundary changes
+        * Changes flagged by SAST as introducing High/Critical findings
+
+  - id: process-sast
+    category: Process
+    title: SAST integration in CI with break-build on Critical findings
+    description: |
+      A SAST tool that runs but doesn't block bad changes is a logging
+      mechanism, not a control. The standard should require SAST in CI
+      and state the severity threshold that fails the build.
+    severity: High
+    citations:
+      - nist-ssdf
+      - owasp-asvs
+    evidence_patterns:
+      positive:
+        - '(sast|static (analysis|application security))'
+        - '(codeql|sonarqube|semgrep|fortify|checkmarx|snyk code)'
+        - 'fail.{0,30}build.{0,40}(critical|high|finding|severity)'
+        - 'static analysis.{0,40}(required|gate|pipeline|ci)'
+    suggested_resolution: |
+      Require SAST in CI for every PR. Name the tool(s) in use (CodeQL,
+      Semgrep, SonarQube, Snyk Code, etc.). State the severity that fails
+      the build (Critical at minimum). Define the exception process:
+      who approves a SAST suppression, where it is recorded, when it is
+      revisited.
+
+  - id: process-dast
+    category: Process
+    title: DAST or equivalent dynamic testing of pre-production environments
+    description: |
+      SAST catches code-level patterns; DAST catches integration-level and
+      configuration-level issues that only surface in a running system.
+      Mature standards require both, applied to a representative pre-
+      production environment.
+    severity: Medium
+    citations:
+      - owasp-asvs
+      - nist-ssdf
+    evidence_patterns:
+      positive:
+        - '(dast|dynamic (analysis|application security))'
+        - '(zap|burp|nessus|nuclei).{0,40}(scan|test)'
+        - 'penetration test|pen test'
+        - 'dynamic.{0,30}(scan|test).{0,40}(pre[- ]production|staging|environment)'
+    suggested_resolution: |
+      Require DAST scanning of pre-production environments on a defined
+      cadence (typically per-release or weekly for actively-developed
+      services). Name the tooling (OWASP ZAP, Burp Suite Enterprise, Nuclei,
+      vendor product). State the remediation SLA for findings.
+
+  - id: process-incident-response-link
+    category: Process
+    title: Reference to incident response process for security findings
+    description: |
+      A secure coding standard creates findings (CVE in a dependency, leaked
+      secret, SAST critical, DAST critical, customer report) that the team
+      must respond to under time pressure. The standard should reference
+      the incident response process so the path from "we found it" to
+      "we fixed it" is not ad-hoc.
+    severity: Medium
+    citations:
+      - nist-ssdf
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - 'incident response (plan|process|policy|procedure)'
+        - 'security incident.{0,40}(report|notify|escalat)'
+        - 'incident.{0,40}(handling|management|playbook|runbook)'
+        - 'vulnerability disclosure'
+    suggested_resolution: |
+      Reference the organization's incident response policy by name. State
+      the trigger conditions specific to secure-coding findings (in-prod
+      Critical CVE, leaked secret, customer-reported security issue).
+      Identify the channel for engineers to report a suspected security
+      issue and the on-call expectation.
+
+  # ============================================================
+  # CATEGORY: Training
+  # ============================================================
+  - id: training-secure-coding
+    category: Training
+    title: Secure coding training requirement and cadence
+    description: |
+      A standard nobody has been trained on is shelfware. The policy should
+      require initial onboarding training and a refresh cadence, ideally
+      tied to incident learnings or major standard revisions.
+    severity: Medium
+    citations:
+      - nist-ssdf
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - 'secure coding (training|education)'
+        - 'security training.{0,40}(annual|onboard|every)'
+        - 'training.{0,40}(developer|engineer).{0,40}(security|secure)'
+    suggested_resolution: |
+      State the training requirement: secure-coding training during
+      onboarding for all engineers, refresh annually or on major standard
+      revision. Identify the platform/curriculum. Track completion;
+      non-completion blocks production access after a stated grace period.

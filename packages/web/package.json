@@ -1,0 +1,21 @@
+{
+  "name": "@policyforge/web",
+  "version": "0.1.0",
+  "description": "PolicyForge web frontend — wraps the core engine in a browser UI",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "dependencies": {
+    "@policyforge/core": "file:../core",
+    "express": "^4.21.0",
+    "multer": "^2.0.0",
+    "archiver": "^7.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

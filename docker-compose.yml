@@ -1,0 +1,16 @@
+services:
+  policyforge:
+    build: .
+    container_name: policyforge
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+    # No volumes — PolicyForge keeps no state on the server
+    # No external network calls — the engine runs entirely in-process
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

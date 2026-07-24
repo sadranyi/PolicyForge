@@ -1,0 +1,18 @@
+{
+  "name": "policyforge",
+  "version": "0.1.0",
+  "description": "Turn AI policies into agent instructions, pre-commit hooks, and CI gates",
+  "license": "Apache-2.0",
+  "private": true,
+  "workspaces": [
+    "packages/core",
+    "packages/cli",
+    "packages/web"
+  ],
+  "scripts": {
+    "test": "node --test packages/core/tests/",
+    "wizard": "node packages/cli/src/index.js wizard",
+    "review:example": "node packages/cli/src/index.js review --policy examples/sample-policy.md --output examples/output",
+    "generate:example": "node packages/cli/src/index.js generate --policy examples/sample-policy.md --stack typescript --ci github-actions --org-name 'Acme Corp' --owner-email security@acme.example --output examples/output"
+  }
+}

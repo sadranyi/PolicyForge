@@ -1,0 +1,431 @@
+# PolicyForge baseline — AI usage policies
+# ==========================================
+# This file defines the rules PolicyForge applies when reviewing AI usage policies.
+# Every rule cites named, public frameworks. The baseline is the project's
+# defensibility — it is what differentiates PolicyForge from "another LLM wrapper."
+#
+# Schema version: 1.0
+# License: Apache-2.0
+
+baseline:
+  id: ai-usage-policy
+  name: AI Usage Policy Baseline
+  version: 1.0.0
+  last_reviewed: 2026-04-29
+  description: |
+    Reviews AI usage policies against published frameworks for completeness
+    and adequate technical control specification. Designed to identify gaps
+    that materially weaken policy enforceability or expose the organization
+    to AI-specific risk.
+
+  citations:
+    - id: nist-ai-rmf
+      name: NIST AI Risk Management Framework
+      version: "1.0"
+      url: https://www.nist.gov/itl/ai-risk-management-framework
+    - id: owasp-llm-top10
+      name: OWASP Top 10 for LLM Applications
+      version: "2025"
+      url: https://owasp.org/www-project-top-10-for-large-language-model-applications/
+    - id: iso-42001
+      name: ISO/IEC 42001 AI management system standard
+      version: "2023"
+      url: https://www.iso.org/standard/81230.html
+    - id: eu-ai-act
+      name: EU AI Act
+      version: "Regulation (EU) 2024/1689"
+      url: https://eur-lex.europa.eu/eli/reg/2024/1689
+    - id: nist-sp-800-53
+      name: NIST SP 800-53 Security and Privacy Controls
+      version: "Rev. 5"
+      url: https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final
+
+# ============================================================
+# RULES
+# ============================================================
+# Each rule has:
+#   id              — stable identifier
+#   category        — high-level grouping for organizing the review
+#   title           — short, neutral statement of the requirement
+#   description     — what the policy needs to address
+#   severity        — Critical / High / Medium / Low (rated by impact if absent)
+#   citations       — references to source frameworks (must be non-empty)
+#   evidence_patterns — text patterns the reviewer searches for to determine
+#                       whether the policy addresses this rule. If ANY of the
+#                       positive patterns match, the rule is considered satisfied.
+#                       If NONE match, the rule is flagged as a gap.
+#   suggested_resolution — what to add to the policy to address the gap
+#   stack_specific  — optional: only applies to certain technical stacks
+
+rules:
+
+  # ============================================================
+  # CATEGORY: Foundational
+  # ============================================================
+  - id: foundational-classification
+    category: Foundational
+    title: Data classification framework defined or referenced
+    description: |
+      The policy must define or reference an explicit data classification
+      taxonomy with concrete tiers and handling rules. Without a taxonomy,
+      every employee independently judges what data is sensitive.
+    severity: Critical
+    citations:
+      - nist-ai-rmf
+      - iso-42001
+    evidence_patterns:
+      positive:
+        - 'classification (tier|level|category)'
+        - 'public.{0,10}internal.{0,10}confidential'
+        - 'data classification (policy|standard|framework)'
+        - 'restricted.{0,30}confidential.{0,30}internal'
+      negative:
+        - 'data classification framework'  # mentioned but not defined
+    suggested_resolution: |
+      Define or reference a data classification taxonomy with at least 3 tiers
+      (e.g., Public, Internal, Confidential, Restricted). Map data types to
+      tiers. State which AI tools are permissible per tier.
+
+  - id: foundational-customer-data-prohibition
+    category: Foundational
+    title: Explicit prohibition on customer data in AI services
+    description: |
+      The policy must contain an explicit, unambiguous prohibition on entering
+      customer data into AI services — at least into non-tenant-bound consumer
+      services. Implicit coverage via classification rules is insufficient.
+    severity: Critical
+    citations:
+      - eu-ai-act
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - 'customer data.{0,80}(must not|never|prohibited|cannot)'
+        - '(must not|never|prohibited).{0,80}customer (data|information|records)'
+        - 'production data.{0,80}(must not|never|prohibited)'
+    suggested_resolution: |
+      Add a top-level rule: "Customer data — of any classification — must not be
+      entered into any AI service that is not tenant-bound and contractually
+      protected. This includes anonymized samples derived from real customer data."
+
+  - id: foundational-decision-criteria
+    category: Foundational
+    title: Multi-factor decision criteria for AI tool use
+    description: |
+      Single-factor heuristics ("would it embarrass us?") miss regulatory and
+      contractual exposure. Policy should provide a multi-factor framework
+      considering at minimum: regulatory scope, contractual confidentiality,
+      PII content, reputational risk, aggregation risk.
+    severity: High
+    citations:
+      - nist-ai-rmf
+      - eu-ai-act
+    evidence_patterns:
+      positive:
+        - '(GDPR|CCPA|HIPAA|GLBA|SOX|PCI)'
+        - 'regulatory.{0,30}(scope|compliance|requirement)'
+        - 'contractual.{0,30}(confidentiality|obligation)'
+        - 'personally identifiable information'
+    suggested_resolution: |
+      Replace any single-question heuristic with a decision flow covering
+      regulatory scope (GDPR/CCPA/HIPAA/GLBA/SOX/PCI as applicable),
+      contractual confidentiality, PII, reputational risk, and aggregation risk.
+
+  # ============================================================
+  # CATEGORY: Personal AI Accounts
+  # ============================================================
+  - id: personal-accounts-controls
+    category: Personal Accounts
+    title: Compensating controls for personal AI account use
+    description: |
+      If the policy permits personal AI accounts for any work purpose, it
+      must specify compensating controls — verified training opt-out,
+      account registration, offboarding obligations, prohibited content.
+    severity: Critical
+    citations:
+      - nist-ai-rmf
+      - iso-42001
+    evidence_patterns:
+      positive:
+        - 'training opt[- ]out'
+        - 'opt out of (training|model training)'
+        - 'personal account.{0,80}(register|registered|registration)'
+        - 'offboarding.{0,80}(AI|account|conversation)'
+    suggested_resolution: |
+      For each permitted use of a personal AI account, require: (a) verified
+      training opt-out as a precondition, (b) registration with IT, (c)
+      offboarding attestation, (d) prohibition on saving organization-context
+      conversations.
+
+  - id: personal-accounts-deprovisioning
+    category: Personal Accounts
+    title: Deprovisioning process for personal AI accounts
+    description: |
+      Personal AI accounts retain conversation history after employees leave.
+      Policy should address this explicitly via offboarding checklist.
+    severity: Medium
+    citations:
+      - iso-42001
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - 'offboarding.{0,80}(AI|account)'
+        - 'departing.{0,80}(employee|contractor).{0,80}(AI|account)'
+        - 'leaving.{0,80}(employee|contractor).{0,80}(AI|conversation)'
+    suggested_resolution: |
+      Add an offboarding checklist item: departing employees must delete
+      organization-context conversations from any personal AI accounts and
+      attest in writing that no copies remain.
+
+  # ============================================================
+  # CATEGORY: Vendor Risk
+  # ============================================================
+  - id: vendor-risk-review-process
+    category: Vendor Risk
+    title: Vendor security review process for new AI tools
+    description: |
+      Authorizing new AI tools requires a defined review process — not just
+      a Helpdesk ticket. Required artifacts include data-flow diagram,
+      threat model, vendor security questionnaire, DPA verification.
+    severity: High
+    citations:
+      - nist-ai-rmf
+      - iso-42001
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - 'vendor (security |risk )?(assessment|review|questionnaire)'
+        - 'third[- ]party (security |risk )?(assessment|review)'
+        - 'data processing (agreement|addendum|DPA)'
+        - 'SOC ?2'
+    suggested_resolution: |
+      Define an AI Tool Authorization process distinct from general Helpdesk
+      intake. Required artifacts: data-flow diagram, threat model, vendor
+      SOC2/ISO assessment, DPA confirmation. Assign reviewer roles.
+
+  - id: vendor-risk-meeting-tools
+    category: Vendor Risk
+    title: AI meeting transcription tools addressed
+    description: |
+      AI meeting transcription tools (Otter, Fireflies, Read.ai, Zoom AI
+      Companion, etc.) ingest some of the most sensitive content in any
+      organization. Policy should address them explicitly.
+    severity: High
+    citations:
+      - nist-ai-rmf
+      - eu-ai-act
+    evidence_patterns:
+      positive:
+        - 'transcription'
+        - 'meeting (recording|transcription|summarization)'
+        - '(Otter|Fireflies|Read\.ai|Zoom AI|Teams Premium|Granola)'
+    suggested_resolution: |
+      Add a section on AI meeting/transcription tools. Default to enterprise-
+      tenant tooling only (e.g., Teams Premium, Copilot in Teams). Personal
+      transcription tools should be prohibited for any meeting that may
+      include confidential or customer content.
+
+  # ============================================================
+  # CATEGORY: AI-Specific Threats
+  # ============================================================
+  - id: threats-prompt-injection
+    category: AI Threats
+    title: Prompt injection awareness and mitigations
+    description: |
+      Indirect prompt injection — instructions hidden in documents, web pages,
+      emails, or tool outputs that an AI processes — is the dominant practical
+      threat against agentic AI. Policy should address it explicitly.
+    severity: Critical
+    citations:
+      - owasp-llm-top10
+      - nist-ai-rmf
+    evidence_patterns:
+      positive:
+        - 'prompt injection'
+        - 'indirect injection'
+        - 'untrusted (content|input|source)'
+        - 'malicious (instructions|content|prompt)'
+    suggested_resolution: |
+      Add a section on prompt injection (direct and indirect). Define
+      mitigations: treat AI summaries of external content as untrusted,
+      require human review before AI takes consequential actions on inbound
+      content, log all agentic tool calls.
+
+  - id: threats-mcp-governance
+    category: AI Threats
+    title: MCP server / agent connector governance
+    description: |
+      MCP servers and similar connectors act on behalf of users against
+      enterprise systems. They are an execution surface, not a passive data
+      conduit. Governance must cover registration, authentication model,
+      tool surface, and audit logging.
+    severity: High
+    citations:
+      - owasp-llm-top10
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - 'MCP'
+        - 'Model Context Protocol'
+        - 'AI (agent|connector) (registration|approval|governance)'
+        - 'agent.{0,30}(approval|registration|catalog)'
+    suggested_resolution: |
+      Add MCP server / AI agent governance as a distinct subsection.
+      Require: registration with IT before deployment, defined and minimum-
+      privilege tool surface, documented authentication model, approval
+      workflow for production use, audit logging of all tool calls.
+
+  - id: threats-agent-blast-radius
+    category: AI Threats
+    title: AI agent blast radius and kill switch
+    description: |
+      Autonomous AI agents must have declared scope, named owners, and a
+      documented kill-switch procedure for misbehaviour.
+    severity: High
+    citations:
+      - nist-ai-rmf
+      - owasp-llm-top10
+    evidence_patterns:
+      positive:
+        - 'kill[- ]switch'
+        - 'agent.{0,30}(owner|ownership)'
+        - 'blast radius'
+        - 'autonomous.{0,30}(scope|permission|boundary)'
+    suggested_resolution: |
+      For each deployed AI agent: name an owner, declare blast radius
+      (systems read from / written to / off-limits), document kill-switch
+      procedure, version-control system prompts.
+
+  # ============================================================
+  # CATEGORY: Governance & Process
+  # ============================================================
+  - id: governance-incident-response
+    category: Governance
+    title: AI-specific incident response procedures
+    description: |
+      Generic IR procedures don't cover AI-specific scenarios: customer data
+      pasted into ChatGPT, prompt injection, agent misbehaviour, AI-generated
+      code with secrets. Policy must reference an AI-specific runbook.
+    severity: Critical
+    citations:
+      - nist-sp-800-53
+      - iso-42001
+    evidence_patterns:
+      positive:
+        - 'AI (incident response|incident handling)'
+        - 'incident response.{0,80}AI'
+        - 'AI.{0,30}runbook'
+        - 'AI.{0,30}playbook'
+    suggested_resolution: |
+      Author a separate AI Incident Response runbook (or extend the existing
+      IR runbook with AI-specific playbooks). Define triggers, escalation,
+      customer/regulator notification criteria, and engagement paths with
+      each authorized AI provider.
+
+  - id: governance-training
+    category: Governance
+    title: AI usage training and attestation
+    description: |
+      Policies that ask employees to "use professional judgment" without
+      training are not enforceable in practice. Policy should require
+      training and annual attestation tied to AI tool privileges.
+    severity: High
+    citations:
+      - iso-42001
+      - nist-ai-rmf
+    evidence_patterns:
+      positive:
+        - 'AI (security |awareness )?training'
+        - 'annual (training|attestation)'
+        - 'AI.{0,30}attestation'
+    suggested_resolution: |
+      Require annual AI Security Awareness training for all employees, with
+      attestation. Tie BYO-AI privileges to completion. Consider role-specific
+      modules for engineering, finance, customer-facing, and HR functions.
+
+  - id: governance-review-cadence
+    category: Governance
+    title: Policy review cadence and named owner
+    description: |
+      Without a stated review cadence and named owner, the policy will go
+      stale. AI evolves quickly enough that 6-12 months is the right cadence.
+    severity: Medium
+    citations:
+      - iso-42001
+    evidence_patterns:
+      positive:
+        - 'review (date|cadence|frequency)'
+        - 'next review'
+        - 'policy owner'
+        - '(annually|quarterly|semi-annually|every \d+ months) review'
+    suggested_resolution: |
+      State explicit review cadence (six months recommended given AI velocity),
+      assign a named policy owner role (not a person), and document the
+      change-control process for amendments.
+
+  - id: governance-compliance-mapping
+    category: Governance
+    title: Regulatory compliance mapping
+    description: |
+      Policy should explicitly identify which regulatory regimes apply to
+      which data categories, and which AI tools are permitted under each.
+    severity: High
+    citations:
+      - eu-ai-act
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - 'GDPR'
+        - 'CCPA'
+        - 'HIPAA'
+        - 'GLBA'
+        - 'PCI[- ]DSS'
+        - 'SOX'
+    suggested_resolution: |
+      Add a compliance mapping section identifying which regimes apply to
+      which data categories, which AI tools are permitted under each, and
+      data residency requirements where applicable. Coordinate with Legal.
+
+  # ============================================================
+  # CATEGORY: Engineering Practice
+  # ============================================================
+  - id: engineering-secret-handling
+    category: Engineering Practice
+    title: Secrets prohibited from AI prompts
+    description: |
+      Policy must explicitly prohibit pasting secrets, API keys, connection
+      strings, or credentials into any AI service. This is distinct from
+      the customer data prohibition.
+    severity: Critical
+    citations:
+      - nist-sp-800-53
+      - owasp-llm-top10
+    evidence_patterns:
+      positive:
+        - '(secret|API key|credential|password|token).{0,80}(prompt|AI service|chat|conversation)'
+        - 'connection string.{0,80}(must not|prohibited)'
+    suggested_resolution: |
+      Add an explicit rule: secrets, API keys, connection strings, tokens,
+      and credentials must never be entered into any AI service prompt,
+      regardless of the service tier. Reference your secret management
+      systems (e.g., Azure Key Vault, AWS Secrets Manager, HashiCorp Vault).
+
+  - id: engineering-code-review
+    category: Engineering Practice
+    title: Review requirements for AI-generated code
+    description: |
+      Policy should establish review requirements for code substantially
+      generated by AI tools — typically requiring a domain-familiar reviewer.
+    severity: High
+    citations:
+      - nist-ai-rmf
+      - owasp-llm-top10
+    evidence_patterns:
+      positive:
+        - 'AI[- ]generated code.{0,80}review'
+        - 'AI.{0,30}(commit|pull request).{0,30}review'
+        - '(second|additional|domain).{0,30}reviewer'
+    suggested_resolution: |
+      Define review requirements for AI-generated code: tag commits with
+      [AI-Heavy] when AI generated substantial portions, require a second
+      domain-familiar reviewer for [AI-Heavy] PRs, prohibit AI-synthesized
+      cryptography or authentication code without security review.

@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Generated output
+policyforge-output/
+examples/output/
+*.zip
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Logs
+npm-debug.log*
+*.log

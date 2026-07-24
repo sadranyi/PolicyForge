@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PolicyForge — turn AI policies into agent instructions and CI gates</title>
+  <meta name="description" content="Open-source tool that reviews your AI usage policy against published frameworks and generates a tailored enforcement toolkit for your stack." />
+  <style>
+    :root {
+      --bg: #fafaf9;
+      --surface: #ffffff;
+      --surface-2: #f5f5f4;
+      --border: #e7e5e4;
+      --border-strong: #d6d3d1;
+      --ink: #1c1917;
+      --ink-2: #44403c;
+      --ink-3: #78716c;
+      --accent: #1e40af;
+      --accent-fg: #ffffff;
+      --accent-soft: #dbeafe;
+      --critical: #b91c1c;
+      --critical-bg: #fee2e2;
+      --high: #c2410c;
+      --high-bg: #ffedd5;
+      --medium: #a16207;
+      --medium-bg: #fef3c7;
+      --low: #475569;
+      --low-bg: #e2e8f0;
+      --success: #15803d;
+      --success-bg: #dcfce7;
+      --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
+      --shadow: 0 4px 12px rgb(0 0 0 / 0.06);
+      --shadow-lg: 0 12px 32px rgb(0 0 0 / 0.10);
+      --radius: 8px;
+      --radius-lg: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* === Layout === */
+    .app {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 48px;
+    }
+    .logo {
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+    }
+    .logo .mark {
+      display: inline-block;
+      width: 24px; height: 24px;
+      background: var(--ink);
+      color: var(--bg);
+      border-radius: 4px;
+      text-align: center;
+      line-height: 24px;
+      margin-right: 8px;
+      font-weight: 800;
+      font-size: 14px;
+    }
+    .top-links {
+      display: flex; gap: 24px;
+      font-size: 14px;
+    }
+    .top-links a { color: var(--ink-2); }
+
+    /* === Hero === */
+    .hero {
+      margin-bottom: 48px;
+    }
+    .hero h1 {
+      font-size: 44px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin: 0 0 20px;
+      font-weight: 700;
+    }
+    .hero p.lead {
+      font-size: 19px;
+      color: var(--ink-2);
+      margin: 0 0 8px;
+      max-width: 620px;
+    }
+    .hero p.sub {
+      font-size: 15px;
+      color: var(--ink-3);
+      margin: 0;
+      max-width: 620px;
+    }
+
+    /* === Stepper === */
+    .stepper {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 32px;
+      font-size: 13px;
+      color: var(--ink-3);
+    }
+    .step {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--surface-2);
+      border-bottom: 2px solid var(--border-strong);
+      transition: all 0.2s;
+    }
+    .step.active {
+      background: var(--surface);
+      border-bottom-color: var(--accent);
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .step.done {
+      border-bottom-color: var(--success);
+      color: var(--ink-2);
+    }
+    .step .num {
+      font-weight: 700;
+      margin-right: 6px;
+    }
+
+    /* === Card === */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-sm);
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      letter-spacing: -0.01em;
+    }
+    .card p.help {
+      margin: 0 0 24px;
+      color: var(--ink-2);
+    }
+
+    /* === Forms === */
+    label.field {
+      display: block;
+      margin-bottom: 20px;
+    }
+    label.field > .lbl {
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--ink-2);
+      margin-bottom: 6px;
+    }
+    label.field > .hint {
+      display: block;
+      font-size: 13px;
+      color: var(--ink-3);
+      margin-bottom: 8px;
+    }
+    input[type="text"],
+    input[type="email"],
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 15px;
+      font-family: inherit;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .file-drop {
+      border: 2px dashed var(--border-strong);
+      border-radius: var(--radius);
+      padding: 32px;
+      text-align: center;
+      transition: all 0.2s;
+      cursor: pointer;
+      background: var(--surface-2);
+    }
+    .file-drop:hover, .file-drop.drag {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+    .file-drop input[type=file] { display: none; }
+    .file-drop .emoji { font-size: 32px; margin-bottom: 8px; }
+    .file-drop .title { font-weight: 600; }
+    .file-drop .sub { color: var(--ink-3); font-size: 14px; margin-top: 4px; }
+    .file-drop.has-file { border-style: solid; border-color: var(--success); background: var(--success-bg); }
+
+    /* === Radio cards === */
+    .radio-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .radio-cards.cols-1 { grid-template-columns: 1fr; }
+    @media (max-width: 600px) {
+      .radio-cards { grid-template-columns: 1fr; }
+    }
+    .radio-card {
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--surface);
+    }
+    .radio-card:hover { border-color: var(--accent); }
+    .radio-card.selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .radio-card input { display: none; }
+    .radio-card .title { font-weight: 600; }
+    .radio-card .desc { font-size: 13px; color: var(--ink-3); margin-top: 4px; }
+
+    /* === Buttons === */
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 32px;
+    }
+    .btn {
+      padding: 11px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: var(--radius);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .btn-primary {
+      background: var(--ink);
+      color: var(--bg);
+    }
+    .btn-primary:hover { background: #000; }
+    .btn-primary:disabled {
+      background: var(--ink-3);
+      cursor: not-allowed;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink-2);
+      border-color: var(--border-strong);
+    }
+    .btn-ghost:hover { background: var(--surface-2); }
+
+    /* === Review summary === */
+    .review-summary {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .summary-row:last-child { border-bottom: none; }
+    .sev-label {
+      font-weight: 600;
+      width: 90px;
+    }
+    .sev-bar {
+      flex: 1;
+      height: 8px;
+      background: var(--surface-2);
+      border-radius: 4px;
+      margin: 0 16px;
+      overflow: hidden;
+      display: flex;
+    }
+    .sev-bar > span {
+      display: block;
+      height: 100%;
+    }
+    .sev-bar > .satisfied { background: var(--success); }
+    .sev-bar > .partial   { background: var(--medium); }
+    .sev-bar > .gap       { background: var(--ink-3); }
+    .sev-counts { font-size: 13px; color: var(--ink-2); min-width: 140px; text-align: right; }
+
+    .recommendation {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      font-weight: 500;
+    }
+    .recommendation.material_revision_required { background: var(--critical-bg); color: var(--critical); }
+    .recommendation.material_revision_recommended { background: var(--high-bg); color: var(--high); }
+    .recommendation.targeted_revision_recommended { background: var(--medium-bg); color: var(--medium); }
+    .recommendation.minor_improvements_only { background: var(--success-bg); color: var(--success); }
+
+    /* === Findings === */
+    .finding {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--border-strong);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+    .finding.gap { border-left-color: var(--critical); }
+    .finding.partial { border-left-color: var(--medium); }
+    .finding.satisfied { border-left-color: var(--success); }
+    .finding-head {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    .finding-status {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 8px;
+      border-radius: 3px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .finding.gap .finding-status { background: var(--critical-bg); color: var(--critical); }
+    .finding.partial .finding-status { background: var(--medium-bg); color: var(--medium); }
+    .finding.satisfied .finding-status { background: var(--success-bg); color: var(--success); }
+    .finding-title { font-weight: 600; flex: 1; }
+    .finding-sev {
+      font-size: 12px;
+      color: var(--ink-3);
+      flex-shrink: 0;
+    }
+    .finding-body {
+      font-size: 14px;
+      color: var(--ink-2);
+      margin-top: 8px;
+    }
+    .finding-resolution {
+      background: var(--surface-2);
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--ink-2);
+    }
+    .finding-resolution-label {
+      font-weight: 600;
+      color: var(--ink);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .finding-citations {
+      font-size: 12px;
+      color: var(--ink-3);
+      margin-top: 12px;
+    }
+
+    /* === Privacy notice === */
+    .privacy-note {
+      background: var(--surface-2);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--ink-3);
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .privacy-note .lock { font-size: 16px; }
+
+    /* === Footer === */
+    footer {
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--ink-3);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* === Loading === */
+    .loading {
+      text-align: center;
+      padding: 48px 24px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* === Hidden === */
+    .hidden { display: none !important; }
+
+    /* === Done state === */
+    .done-state {
+      text-align: center;
+      padding: 32px;
+    }
+    .done-state .check {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: var(--success-bg);
+      color: var(--success);
+      font-size: 32px;
+      line-height: 64px;
+      margin: 0 auto 16px;
+    }
+    .done-state h2 { margin-bottom: 8px; }
+    .done-state p { color: var(--ink-2); margin-bottom: 24px; }
+
+    /* === Categories list === */
+    .category-section {
+      margin-bottom: 32px;
+    }
+    .category-section h3 {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-3);
+      margin: 0 0 12px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo"><span class="mark">P</span>PolicyForge</div>
+      <nav class="top-links">
+        <a href="/api/baseline" target="_blank">Baseline</a>
+        <a href="https://github.com/yourorg/policyforge" target="_blank">GitHub</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <h1>Turn your AI policy into agent instructions and CI gates.</h1>
+      <p class="lead">Upload your AI usage policy. PolicyForge reviews it against named, public frameworks (NIST AI RMF, OWASP LLM Top 10, ISO 42001, EU AI Act) and generates a tailored enforcement toolkit for your stack — agent instructions, pre-commit hooks, CI pipeline gates, and an incident response runbook.</p>
+      <p class="sub">Open source under Apache-2.0. Self-host this whole thing if you'd rather. Nothing leaves your machine when running locally.</p>
+    </section>
+
+    <div class="stepper" id="stepper">
+      <div class="step active" data-step="upload"><span class="num">1</span>Upload</div>
+      <div class="step" data-step="review"><span class="num">2</span>Review</div>
+      <div class="step" data-step="stack"><span class="num">3</span>Stack</div>
+      <div class="step" data-step="generate"><span class="num">4</span>Toolkit</div>
+    </div>
+
+    <!-- ==== STEP 1: UPLOAD ==== -->
+    <div class="card" id="step-upload">
+      <h2>Upload your AI policy</h2>
+      <p class="help">Markdown, plain text, or Word document. PolicyForge will extract the text and review it against the active baseline.</p>
+
+      <label class="file-drop" id="file-drop">
+        <input type="file" id="policy-file" accept=".md,.markdown,.txt,.docx" />
+        <div class="emoji">📄</div>
+        <div class="title" id="file-drop-title">Click to select or drop a file here</div>
+        <div class="sub" id="file-drop-sub">Supported: .md, .markdown, .txt, .docx · Max 5 MB</div>
+      </label>
+
+      <label class="field" style="margin-top: 24px;">
+        <span class="lbl">Organization name (optional)</span>
+        <span class="hint">Used in the generated docs. You can leave this blank.</span>
+        <input type="text" id="org-name" placeholder="Acme Corp" />
+      </label>
+
+      <div class="privacy-note">
+        <span class="lock">🔒</span>
+        <span>Files are processed in memory only — nothing is written to disk on this server. For maximum privacy, run PolicyForge locally via the CLI.</span>
+      </div>
+
+      <div class="actions">
+        <span></span>
+        <button class="btn btn-primary" id="btn-review" disabled>Review policy →</button>
+      </div>
+    </div>
+
+    <!-- ==== STEP 2: REVIEW ==== -->
+    <div class="card hidden" id="step-review">
+      <h2>Policy review</h2>
+      <p class="help" id="review-help">Reviewed against <strong>AI Usage Policy Baseline v1.0.0</strong>. Every observation cites the source framework it's based on.</p>
+
+      <div id="review-loading" class="loading">
+        <div class="spinner"></div>
+        <div>Reading and reviewing your policy…</div>
+      </div>
+
+      <div id="review-content" class="hidden">
+        <div class="review-summary" id="review-summary"></div>
+        <div id="findings"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-ghost" id="btn-back-upload">← Back</button>
+        <button class="btn btn-primary" id="btn-go-stack">Generate toolkit →</button>
+      </div>
+    </div>
+
+    <!-- ==== STEP 3: STACK ==== -->
+    <div class="card hidden" id="step-stack">
+      <h2>Tell us about your stack</h2>
+      <p class="help">Three quick questions. We use these to tailor the generated toolkit — pre-commit hooks for your language, CI gates for your CI system, secret-handling guidance for your secret store.</p>
+
+      <label class="field">
+        <span class="lbl">Primary language</span>
+        <div class="radio-cards" id="stack-langs">
+          <label class="radio-card" data-value="typescript"><input type="radio" name="stack" value="typescript" /><div class="title">TypeScript / JavaScript</div><div class="desc">Node-based hooks; works with most modern stacks.</div></label>
+          <label class="radio-card" data-value="csharp"><input type="radio" name="stack" value="csharp" /><div class="title">C# / .NET</div><div class="desc">Husky.NET hooks; works for .NET-only repos.</div></label>
+          <label class="radio-card" data-value="python"><input type="radio" name="stack" value="python" /><div class="title">Python</div><div class="desc">Standard pre-commit hooks; works with Poetry/pip.</div></label>
+          <label class="radio-card" data-value="java"><input type="radio" name="stack" value="java" /><div class="title">Java</div><div class="desc">Standard pre-commit hooks; works with Maven/Gradle.</div></label>
+          <label class="radio-card" data-value="mixed"><input type="radio" name="stack" value="mixed" /><div class="title">Mixed (multiple)</div><div class="desc">Most flexibility; both Husky and Husky.NET configs included.</div></label>
+        </div>
+      </label>
+
+      <label class="field">
+        <span class="lbl">CI / CD system</span>
+        <div class="radio-cards" id="stack-ci">
+          <label class="radio-card" data-value="azure-devops"><input type="radio" name="ci" value="azure-devops" /><div class="title">Azure DevOps</div><div class="desc">Generates a reusable pipeline template.</div></label>
+          <label class="radio-card" data-value="github-actions"><input type="radio" name="ci" value="github-actions" /><div class="title">GitHub Actions</div><div class="desc">Generates a workflow file.</div></label>
+          <label class="radio-card" data-value="both"><input type="radio" name="ci" value="both" /><div class="title">Both</div></label>
+          <label class="radio-card" data-value="none"><input type="radio" name="ci" value="none" /><div class="title">Other / none</div><div class="desc">Skip CI generation; you'll add gates manually.</div></label>
+        </div>
+      </label>
+
+      <label class="field">
+        <span class="lbl">Secret store (optional)</span>
+        <span class="hint">Where do you keep secrets? We'll reference this in the generated docs so AI agents suggest the right thing.</span>
+        <input type="text" id="secret-store" placeholder="e.g. Azure Key Vault, AWS Secrets Manager, HashiCorp Vault" />
+      </label>
+
+      <label class="field">
+        <span class="lbl">Security contact email (optional)</span>
+        <span class="hint">Used in the generated incident response runbook.</span>
+        <input type="email" id="owner-email" placeholder="security@yourorg.example" />
+      </label>
+
+      <div class="actions">
+        <button class="btn btn-ghost" id="btn-back-review">← Back</button>
+        <button class="btn btn-primary" id="btn-generate" disabled>Generate toolkit →</button>
+      </div>
+    </div>
+
+    <!-- ==== STEP 4: DONE ==== -->
+    <div class="card hidden" id="step-done">
+      <div class="done-state">
+        <div class="check">✓</div>
+        <h2>Toolkit generated</h2>
+        <p>Your zip file contains the full review document, AGENTS.md tailored to your gaps, pre-commit hooks for your stack, CI gates, and an incident response runbook. Read the included README before adopting.</p>
+        <a class="btn btn-primary" id="download-link" href="#" download>Download toolkit (.zip)</a>
+        <p style="margin-top: 24px; font-size: 14px;">
+          <button class="btn btn-ghost" id="btn-restart">Generate another</button>
+        </p>
+      </div>
+    </div>
+
+    <footer>
+      <span>PolicyForge v0.1 · Apache-2.0 · Not legal advice</span>
+      <span><a href="https://github.com/yourorg/policyforge">GitHub</a> · <a href="/api/baseline">View baseline</a></span>
+    </footer>
+  </div>
+
+  <script>
+    // ============================================================
+    // State
+    // ============================================================
+    const state = {
+      file: null,
+      orgName: '',
+      review: null,
+      stack: null,
+      ci: null,
+      secretStore: '',
+      ownerEmail: ''
+    };
+
+    // ============================================================
+    // Step navigation
+    // ============================================================
+    const steps = ['upload', 'review', 'stack', 'done'];
+    function goto(name) {
+      for (const s of steps) {
+        document.getElementById('step-' + s).classList.toggle('hidden', s !== name);
+      }
+      const allSteps = document.querySelectorAll('#stepper .step');
+      const reachedIdx = steps.indexOf(name);
+      allSteps.forEach((el, i) => {
+        const target = el.dataset.step;
+        const targetIdx = steps.indexOf(target);
+        el.classList.toggle('active', target === name);
+        el.classList.toggle('done', targetIdx < reachedIdx);
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ============================================================
+    // Step 1: file upload
+    // ============================================================
+    const fileInput = document.getElementById('policy-file');
+    const fileDrop = document.getElementById('file-drop');
+    const fileTitle = document.getElementById('file-drop-title');
+    const fileSub = document.getElementById('file-drop-sub');
+    const btnReview = document.getElementById('btn-review');
+
+    function handleFile(file) {
+      if (!file) return;
+      const validExts = ['.md', '.markdown', '.txt', '.docx'];
+      const ok = validExts.some(ext => file.name.toLowerCase().endsWith(ext));
+      if (!ok) {
+        alert('Unsupported file type. Use .md, .markdown, .txt, or .docx.');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File too large (max 5 MB).');
+        return;
+      }
+      state.file = file;
+      fileTitle.textContent = file.name;
+      fileSub.textContent = `${(file.size / 1024).toFixed(1)} KB · ready to review`;
+      fileDrop.classList.add('has-file');
+      btnReview.disabled = false;
+    }
+
+    fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+    fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('drag'); });
+    fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('drag'));
+    fileDrop.addEventListener('drop', e => {
+      e.preventDefault();
+      fileDrop.classList.remove('drag');
+      handleFile(e.dataTransfer.files[0]);
+    });
+
+    document.getElementById('org-name').addEventListener('input', e => state.orgName = e.target.value);
+
+    btnReview.addEventListener('click', async () => {
+      if (!state.file) return;
+      goto('review');
+      document.getElementById('review-loading').classList.remove('hidden');
+      document.getElementById('review-content').classList.add('hidden');
+
+      const fd = new FormData();
+      fd.append('policy', state.file);
+      fd.append('org_name', state.orgName);
+
+      try {
+        const res = await fetch('/api/review', { method: 'POST', body: fd });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Server error ${res.status}`);
+        }
+        state.review = await res.json();
+        renderReview(state.review);
+      } catch (err) {
+        document.getElementById('review-loading').innerHTML =
+          '<div style="color: var(--critical); padding: 24px;">Error: ' + err.message + '</div>';
+      }
+    });
+
+    // ============================================================
+    // Step 2: render review
+    // ============================================================
+    function renderReview(payload) {
+      const { review } = payload;
+      document.getElementById('review-loading').classList.add('hidden');
+      document.getElementById('review-content').classList.remove('hidden');
+
+      // Summary
+      const sev = review.summary.by_severity;
+      const summaryEl = document.getElementById('review-summary');
+      summaryEl.innerHTML = '';
+      for (const level of ['Critical', 'High', 'Medium', 'Low']) {
+        const c = sev[level];
+        const total = c.satisfied + c.partial + c.gap;
+        if (total === 0) continue;
+
+        const row = document.createElement('div');
+        row.className = 'summary-row';
+        const satPct = (c.satisfied / total * 100).toFixed(1);
+        const parPct = (c.partial / total * 100).toFixed(1);
+        const gapPct = (c.gap / total * 100).toFixed(1);
+        row.innerHTML = `
+          <div class="sev-label">${level}</div>
+          <div class="sev-bar">
+            <span class="satisfied" style="width:${satPct}%"></span>
+            <span class="partial" style="width:${parPct}%"></span>
+            <span class="gap" style="width:${gapPct}%"></span>
+          </div>
+          <div class="sev-counts">${c.satisfied}/${total} satisfied${c.gap ? ', ' + c.gap + ' gap' + (c.gap === 1 ? '' : 's') : ''}</div>
+        `;
+        summaryEl.appendChild(row);
+      }
+
+      const recDiv = document.createElement('div');
+      recDiv.className = 'recommendation ' + review.recommendation;
+      recDiv.textContent = recommendationText(review.recommendation);
+      summaryEl.appendChild(recDiv);
+
+      // Findings grouped by category
+      const findingsEl = document.getElementById('findings');
+      findingsEl.innerHTML = '';
+      const byCategory = {};
+      for (const f of review.findings) {
+        if (!byCategory[f.category]) byCategory[f.category] = [];
+        byCategory[f.category].push(f);
+      }
+      // Sort categories so gaps surface first
+      const catOrder = Object.keys(byCategory).sort((a, b) => {
+        const aGap = byCategory[a].filter(f => f.status !== 'satisfied').length;
+        const bGap = byCategory[b].filter(f => f.status !== 'satisfied').length;
+        return bGap - aGap;
+      });
+
+      for (const cat of catOrder) {
+        const section = document.createElement('div');
+        section.className = 'category-section';
+        section.innerHTML = `<h3>${escapeHtml(cat)}</h3>`;
+        // Within category, gaps first
+        const sorted = byCategory[cat].sort((a, b) => {
+          const order = { gap: 0, partial: 1, satisfied: 2 };
+          return order[a.status] - order[b.status];
+        });
+        for (const f of sorted) {
+          section.appendChild(renderFinding(f));
+        }
+        findingsEl.appendChild(section);
+      }
+    }
+
+    function renderFinding(f) {
+      const div = document.createElement('div');
+      div.className = 'finding ' + f.status;
+      const statusLabel = f.status === 'gap' ? 'Gap' : f.status === 'partial' ? 'Partial' : 'Satisfied';
+      div.innerHTML = `
+        <div class="finding-head">
+          <div class="finding-status">${statusLabel}</div>
+          <div class="finding-title">${escapeHtml(f.title)}</div>
+          <div class="finding-sev">${escapeHtml(f.severity)}</div>
+        </div>
+        <div class="finding-body">${escapeHtml(f.description.trim())}</div>
+        ${f.status !== 'satisfied' ? `
+          <div class="finding-resolution">
+            <span class="finding-resolution-label">Suggested resolution</span>
+            ${escapeHtml(f.suggested_resolution.trim())}
+          </div>` : ''}
+        <div class="finding-citations">Cited frameworks: ${f.citations.map(c => escapeHtml(c)).join(', ')}</div>
+      `;
+      return div;
+    }
+
+    function recommendationText(rec) {
+      return ({
+        material_revision_required: 'Material revision recommended before adoption — one or more Critical observations should be resolved.',
+        material_revision_recommended: 'Material revision recommended before next adoption cycle — multiple High-severity gaps were identified.',
+        targeted_revision_recommended: 'Targeted revision recommended in the next planned update.',
+        minor_improvements_only: 'Policy is well-aligned with the baseline. Only minor improvements suggested.'
+      })[rec] || rec;
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    }
+
+    // Navigation buttons
+    document.getElementById('btn-back-upload').addEventListener('click', () => goto('upload'));
+    document.getElementById('btn-go-stack').addEventListener('click', () => goto('stack'));
+    document.getElementById('btn-back-review').addEventListener('click', () => goto('review'));
+
+    // ============================================================
+    // Step 3: stack
+    // ============================================================
+    const radioGroups = ['stack', 'ci'];
+    radioGroups.forEach(name => {
+      document.querySelectorAll(`input[name="${name}"]`).forEach(input => {
+        input.addEventListener('change', () => {
+          // Update visual state
+          input.closest('.radio-cards').querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
+          input.closest('.radio-card').classList.add('selected');
+          state[name === 'stack' ? 'stack' : 'ci'] = input.value;
+          updateGenerateButton();
+        });
+      });
+    });
+
+    document.getElementById('secret-store').addEventListener('input', e => state.secretStore = e.target.value);
+    document.getElementById('owner-email').addEventListener('input', e => state.ownerEmail = e.target.value);
+
+    function updateGenerateButton() {
+      document.getElementById('btn-generate').disabled = !(state.stack && state.ci);
+    }
+
+    document.getElementById('btn-generate').addEventListener('click', async () => {
+      if (!state.stack || !state.ci || !state.file) return;
+
+      const btn = document.getElementById('btn-generate');
+      btn.disabled = true;
+      btn.textContent = 'Generating…';
+
+      const fd = new FormData();
+      fd.append('policy', state.file);
+      fd.append('stack', state.stack);
+      fd.append('ci', state.ci);
+      if (state.secretStore) fd.append('secret_store', state.secretStore);
+      if (state.orgName) fd.append('org_name', state.orgName);
+      if (state.ownerEmail) fd.append('owner_email', state.ownerEmail);
+
+      try {
+        const res = await fetch('/api/generate', { method: 'POST', body: fd });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Server error ${res.status}`);
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.getElementById('download-link');
+        link.href = url;
+        link.download = `policyforge-toolkit-${Date.now()}.zip`;
+        // Auto-trigger download
+        link.click();
+        goto('done');
+      } catch (err) {
+        alert('Error generating toolkit: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate toolkit →';
+      }
+    });
+
+    // ============================================================
+    // Restart
+    // ============================================================
+    document.getElementById('btn-restart').addEventListener('click', () => {
+      Object.keys(state).forEach(k => state[k] = null);
+      state.orgName = ''; state.secretStore = ''; state.ownerEmail = '';
+      fileInput.value = '';
+      fileDrop.classList.remove('has-file');
+      fileTitle.textContent = 'Click to select or drop a file here';
+      fileSub.textContent = 'Supported: .md, .markdown, .txt, .docx · Max 5 MB';
+      btnReview.disabled = true;
+      document.querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+      document.getElementById('org-name').value = '';
+      document.getElementById('secret-store').value = '';
+      document.getElementById('owner-email').value = '';
+      goto('upload');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,450 @@
+#!/usr/bin/env node
+/**
+ * Mekorma AI Content Guard
+ * -------------------------
+ * Pre-commit / CI hook that scans staged files for AI-policy violations.
+ * Runs on Node 18+ (no external dependencies — uses Node built-ins only).
+ *
+ * What it checks (in order, fast checks first):
+ *   1. Hardcoded secrets and API keys (high-confidence patterns)
+ *   2. Customer-data fingerprints (real-looking financial / PII data in code)
+ *   3. AI service URLs being called with prompts that may contain sensitive content
+ *   4. Disabling/bypass of security guards (e.g., "ignore previous instructions")
+ *   5. AI-Heavy commit tag verification (warning only)
+ *
+ * Exit codes:
+ *   0 = clean
+ *   1 = violations found (commit blocked)
+ *   2 = warnings only (commit allowed but logged)
+ *
+ * Usage:
+ *   node scripts/ai-content-guard.js                  # scan staged files (pre-commit)
+ *   node scripts/ai-content-guard.js --all            # scan entire repo (CI)
+ *   node scripts/ai-content-guard.js --files a.cs b.ts  # scan specific files
+ */
+
+const { execSync } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+
+// ---------- configuration ----------
+
+// Files we don't scan (binaries, generated content, third-party)
+const SKIP_EXTENSIONS = new Set([
+  ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico",
+  ".pdf", ".docx", ".xlsx", ".pptx",
+  ".zip", ".tar", ".gz", ".7z",
+  ".exe", ".dll", ".pdb", ".so", ".dylib",
+  ".min.js", ".min.css", ".lock"
+]);
+
+const SKIP_DIRECTORIES = [
+  "node_modules", "bin", "obj", "dist", "build", ".git", ".vs", ".idea",
+  "coverage", ".next", "out", "packages", "TestResults"
+];
+
+// Maximum file size to scan (1 MB) - larger files are unlikely to be code
+const MAX_FILE_SIZE = 1024 * 1024;
+
+// ---------- pattern definitions ----------
+
+// Each rule: { id, severity, description, pattern, allowExpression, hint }
+// allowExpression is checked against the matched line; if it matches, the
+// finding is suppressed (e.g., for documentation that mentions a pattern
+// without containing a real instance of it).
+
+const RULES = [
+  // === SECRETS (Critical — block commit) ===
+  {
+    id: "SECRET-001",
+    severity: "critical",
+    description: "Hardcoded Anthropic API key",
+    pattern: /sk-ant-(?:api|admin)\d{2}-[A-Za-z0-9_-]{40,}/g,
+    hint: "Move to Azure Key Vault, User Secrets, or environment variable. See AGENTS.md §7."
+  },
+  {
+    id: "SECRET-002",
+    severity: "critical",
+    description: "Hardcoded OpenAI API key",
+    // OpenAI keys: sk-... or sk-proj-... but NOT sk-ant- (Anthropic, handled by SECRET-001)
+    pattern: /sk-(?!ant-)(?:proj-)?[A-Za-z0-9_-]{40,}/g,
+    allowExpression: /sk-[xX]+|sk-(?:placeholder|example|test|fake|demo|sample)/,
+    hint: "Move to Azure Key Vault, User Secrets, or environment variable. See AGENTS.md §7."
+  },
+  {
+    id: "SECRET-003",
+    severity: "critical",
+    description: "Hardcoded Azure subscription / Storage key (base64 ~88 chars + ==)",
+    pattern: /[A-Za-z0-9+/]{86,}={1,2}/g,
+    allowExpression: /(?:integrity|hash|sha[0-9]+|signature|certificate|x5c|cert\.pem)/i,
+    hint: "Use Managed Identity or Key Vault references. Never inline."
+  },
+  {
+    id: "SECRET-004",
+    severity: "critical",
+    description: "Hardcoded GitHub personal access token",
+    pattern: /gh[pousr]_[A-Za-z0-9]{36,}/g,
+    hint: "Use GitHub Apps, deployment keys, or short-lived tokens via Azure DevOps service connections."
+  },
+  {
+    id: "SECRET-005",
+    severity: "critical",
+    description: "Connection string with embedded password",
+    pattern: /(?:password|pwd)\s*=\s*[^;'\s"]{6,}/gi,
+    allowExpression: /(?:password|pwd)\s*=\s*(?:\$\{|%|\{\{|<|@?Configuration|Environment\.|process\.env|Get-Secret|''|""|"\$|\[REDACTED\]|\*+)/i,
+    hint: "Use parameterized connection string with secret reference. Never inline credentials."
+  },
+  {
+    id: "SECRET-006",
+    severity: "critical",
+    description: "Hardcoded JWT (often pasted from debugging)",
+    pattern: /eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g,
+    hint: "Tokens belong in secure storage, not source. If this is a test fixture, mark it explicitly and add to ALLOWLIST."
+  },
+  {
+    id: "SECRET-007",
+    severity: "critical",
+    description: "Private key / certificate (PEM block start)",
+    pattern: /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----/g,
+    hint: "Private keys must never be committed. Use Azure Key Vault."
+  },
+
+  // === CUSTOMER DATA FINGERPRINTS (Critical — block commit) ===
+  {
+    id: "CUSTDATA-001",
+    severity: "critical",
+    description: "Possible real customer email address",
+    // Matches non-test domain emails. Excludes common test/example domains.
+    pattern: /[a-zA-Z0-9._%+-]+@(?!(?:contoso|northwind|acme|example|test|localhost|mekorma|fabrikam|adventure-works|sample|fake)\b)[a-zA-Z0-9.-]+\.(?:com|net|org|io|co|biz|info|ca|us|uk|de|fr|au|nz)\b/g,
+    allowExpression: /(?:noreply|no-reply|donotreply|do-not-reply|admin|support|info|sales|hello|hi)@/i,
+    hint: "Real customer email addresses are Restricted (AGENTS.md §1). Use synthetic addresses on @contoso.com / @northwind.com / @acme.com."
+  },
+  {
+    id: "CUSTDATA-002",
+    severity: "high",
+    description: "US bank routing number pattern (9 consecutive digits in payment context)",
+    pattern: /(?:routing|aba|rtn)[\s_]*(?:number|#|no)?[\s:=]+\d{9}\b/gi,
+    hint: "Bank routing numbers are Restricted. Use Plugin Secure Config or test fixtures with clearly fake values like 000000000."
+  },
+  {
+    id: "CUSTDATA-003",
+    severity: "high",
+    description: "Possible US bank account number (8-17 digits) in payment context",
+    pattern: /(?:account|acct)[\s_]*(?:number|#|no)?[\s:=]+\d{8,17}\b/gi,
+    allowExpression: /\b(?:0{8,}|1{8,}|9{8,}|12345678|123456789)\b/,
+    hint: "Real account numbers are Restricted. Use clearly synthetic test values."
+  },
+  {
+    id: "CUSTDATA-004",
+    severity: "high",
+    description: "Credit card number pattern (Luhn-shaped, 13-19 digits)",
+    pattern: /\b(?:4\d{3}|5[1-5]\d{2}|3[47]\d{2}|6(?:011|5\d{2}))[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g,
+    allowExpression: /\b(?:4111[\s-]?1111[\s-]?1111[\s-]?1111|5555[\s-]?5555[\s-]?5555[\s-]?4444|4242[\s-]?4242[\s-]?4242[\s-]?4242|0000[\s-]?0000[\s-]?0000[\s-]?0000)\b/,
+    hint: "Card numbers are PCI-scope and Restricted. Use Stripe test cards (4242...) or zero-filled placeholders."
+  },
+  {
+    id: "CUSTDATA-005",
+    severity: "high",
+    description: "US Social Security Number pattern",
+    pattern: /\b(?!000|666)[0-8]\d{2}-(?!00)\d{2}-(?!0000)\d{4}\b/g,
+    allowExpression: /\b(?:000-00-0000|123-45-6789|111-11-1111|999-99-9999)\b/,
+    hint: "SSNs are Restricted. Use clearly fake values like 000-00-0000."
+  },
+  {
+    id: "CUSTDATA-006",
+    severity: "medium",
+    description: "Phone number pattern (10+ digits in contact context)",
+    pattern: /(?:phone|tel|mobile|cell)[\s_]*(?:number|#|no)?[\s:=]+\+?\d[\d\s().-]{9,}/gi,
+    allowExpression: /\b(?:555[-.\s]?\d{4}|000[-.\s]?\d{4}|123[-.\s]?4567)\b/,
+    hint: "Real phone numbers may be PII. Use 555-prefixed test values."
+  },
+  {
+    id: "CUSTDATA-007",
+    severity: "medium",
+    description: "Mekorma customer / partner identifier pattern",
+    // Adjust pattern to match Mekorma's actual customer ID format if known.
+    // Placeholder: matches strings like CUST-12345, CID:67890 in code.
+    pattern: /\b(?:CUST|CID|CUSTOMER|TENANT)[-_:]\d{4,}\b/g,
+    allowExpression: /\b(?:CUST|CID|CUSTOMER|TENANT)[-_:]0{4,}\b/,
+    hint: "Customer identifiers are Restricted. Use synthetic IDs like CUST-00000 in fixtures."
+  },
+
+  // === AI SERVICE MISUSE (High — block commit) ===
+  {
+    id: "AISVC-001",
+    severity: "high",
+    description: "Direct AI API call with potentially sensitive prompt content embedded inline",
+    // Match string literals or method calls where AI service words appear AND
+    // sensitive-context words appear within a short window AND it's not a config lookup.
+    // Heuristic: the AI service word must be a method call or URL, and the sensitive
+    // word must appear in the same expression as a string literal (not a config key).
+    pattern: /(?:openai|anthropic|gemini)\.(?:chat|completions|messages|complete)[\s\S]{0,300}?["'`][^"'`]*?(?:customer|invoice|payment|account|email|ssn|tax)[^"'`]*?["'`]/gi,
+    hint: "AI service calls must not embed customer data in prompts. Sanitize inputs before calling. See AGENTS.md §3.1."
+  },
+  {
+    id: "AISVC-002",
+    severity: "high",
+    description: "Hardcoded AI service endpoint (should be in config)",
+    pattern: /https:\/\/[a-z0-9-]+\.openai\.azure\.com[^\s'"]*|https:\/\/api\.(?:openai|anthropic)\.com\/v\d+\/[^\s'"]*/g,
+    allowExpression: /(?:Configuration\[|appsettings|process\.env|Environment\.|\$\{|<value>)/,
+    hint: "AI service endpoints belong in configuration, not source code."
+  },
+  {
+    id: "AISVC-003",
+    severity: "medium",
+    description: "MCP server registration without auth context",
+    pattern: /(?:registerServer|new\s+McpServer|McpServerOptions)\s*\(/g,
+    hint: "MCP servers must declare authentication model. See AGENTS.md §5.1. Mark explicitly with auth: comment if reviewed."
+  },
+
+  // === PROMPT INJECTION VECTORS (High — block commit) ===
+  {
+    id: "PROMPTINJ-001",
+    severity: "critical",
+    description: "Prompt injection bypass attempt",
+    pattern: /\b(?:ignore|disregard|forget)\s+(?:all\s+|the\s+)?(?:previous|prior|above|earlier)\s+(?:instructions?|prompts?|rules?|guidance)\b/gi,
+    hint: "Phrases that look like prompt injection cannot be committed. If this is documentation about prompt injection, paraphrase it."
+  },
+  {
+    id: "PROMPTINJ-002",
+    severity: "high",
+    description: "External content passed directly to AI without sanitization",
+    pattern: /(?:fetch|axios|HttpClient|WebClient)[\s\S]{0,150}?(?:openai|anthropic|gemini|complete|chat\.completions)/gi,
+    hint: "External content must be sanitized before being passed to AI services. See AGENTS.md §6.2."
+  },
+
+  // === GUARD BYPASS (Critical — block commit) ===
+  {
+    id: "BYPASS-001",
+    severity: "critical",
+    description: "Attempt to disable AI content guard",
+    pattern: /(?:ai-content-guard|gitleaks|husky)[-:\s]*(?:disable|skip|ignore|bypass|off|false)/gi,
+    hint: "Guards may not be disabled in committed code. If a guard incorrectly flags valid content, raise it for review."
+  },
+  {
+    id: "BYPASS-002",
+    severity: "high",
+    description: "Use of --no-verify or git commit bypass flags in scripts",
+    pattern: /git\s+commit[^\n]*--no-verify/g,
+    hint: "Bypassing pre-commit hooks defeats the purpose. Remove from scripts."
+  },
+];
+
+// ALLOWLIST: paths and exact-line patterns where findings are suppressed.
+// Use sparingly — every entry is a documented exception.
+const ALLOWLIST_PATHS = [
+  /^docs\/security\/.*\.md$/,           // security docs may quote patterns
+  /^AGENTS\.md$/,
+  /^CLAUDE\.md$/,
+  /^\.github\/copilot-instructions\.md$/,
+  /^scripts\/ai-content-guard\.js$/,    // this file
+  /^.*\.test\.allowed\.[a-z]+$/,        // explicitly named allowed test fixtures
+];
+
+// ---------- file discovery ----------
+
+function getStagedFiles() {
+  try {
+    const out = execSync("git diff --cached --name-only --diff-filter=ACM", {
+      encoding: "utf8"
+    });
+    return out.split("\n").filter(Boolean);
+  } catch (err) {
+    console.error("[ai-content-guard] could not enumerate staged files:", err.message);
+    return [];
+  }
+}
+
+function getAllFiles(rootDir) {
+  const result = [];
+  function walk(dir) {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (SKIP_DIRECTORIES.includes(entry.name)) continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (entry.isFile()) result.push(path.relative(rootDir, full));
+    }
+  }
+  walk(rootDir);
+  return result;
+}
+
+function shouldScanFile(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (SKIP_EXTENSIONS.has(ext)) return false;
+  if (ALLOWLIST_PATHS.some(rx => rx.test(filePath.replace(/\\/g, "/")))) return false;
+  // Check size
+  try {
+    const stat = fs.statSync(filePath);
+    if (stat.size > MAX_FILE_SIZE) return false;
+  } catch {
+    return false;
+  }
+  return true;
+}
+
+// ---------- scanning ----------
+
+function scanFile(filePath) {
+  let content;
+  try {
+    content = fs.readFileSync(filePath, "utf8");
+  } catch {
+    return [];
+  }
+  const lines = content.split(/\r?\n/);
+  const findings = [];
+
+  for (const rule of RULES) {
+    // Reset regex state for global patterns
+    rule.pattern.lastIndex = 0;
+    let match;
+    while ((match = rule.pattern.exec(content)) !== null) {
+      const lineNumber = content.substring(0, match.index).split("\n").length;
+      const line = lines[lineNumber - 1] || "";
+
+      // Allowlist check
+      if (rule.allowExpression && rule.allowExpression.test(line)) continue;
+
+      findings.push({
+        rule: rule.id,
+        severity: rule.severity,
+        description: rule.description,
+        file: filePath,
+        line: lineNumber,
+        snippet: line.trim().slice(0, 140),
+        hint: rule.hint
+      });
+
+      // Limit findings per rule per file to avoid floods
+      if (findings.filter(f => f.rule === rule.id && f.file === filePath).length >= 5) break;
+    }
+  }
+
+  return findings;
+}
+
+// ---------- reporting ----------
+
+function colorize(text, code) {
+  if (process.stdout.isTTY) return `\x1b[${code}m${text}\x1b[0m`;
+  return text;
+}
+
+const COLORS = {
+  red: 31, yellow: 33, green: 32, blue: 34, magenta: 35, cyan: 36, gray: 90, bold: 1
+};
+
+function printFindings(findings) {
+  if (findings.length === 0) {
+    console.log(colorize("✓ AI Content Guard: no findings.", COLORS.green));
+    return;
+  }
+
+  console.log(colorize("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", COLORS.gray));
+  console.log(colorize(" Mekorma AI Content Guard — findings", COLORS.bold));
+  console.log(colorize("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n", COLORS.gray));
+
+  // Group by file
+  const byFile = {};
+  for (const f of findings) {
+    if (!byFile[f.file]) byFile[f.file] = [];
+    byFile[f.file].push(f);
+  }
+
+  for (const [file, items] of Object.entries(byFile)) {
+    console.log(colorize(`  ${file}`, COLORS.cyan));
+    for (const f of items) {
+      const sevColor = f.severity === "critical" ? COLORS.red
+                     : f.severity === "high" ? COLORS.yellow
+                     : COLORS.gray;
+      console.log(`    ${colorize(f.severity.toUpperCase().padEnd(8), sevColor)} ${colorize(f.rule, COLORS.bold)}  line ${f.line}`);
+      console.log(`      ${f.description}`);
+      console.log(colorize(`      ${f.snippet}`, COLORS.gray));
+      console.log(colorize(`      ↳ ${f.hint}`, COLORS.gray));
+      console.log("");
+    }
+  }
+
+  console.log(colorize("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", COLORS.gray));
+}
+
+// ---------- AI-Heavy commit tag check (warning only) ----------
+
+function checkAiHeavyTag() {
+  // Only meaningful when running pre-commit. Reads commit message from .git/COMMIT_EDITMSG if available.
+  try {
+    const msgPath = path.join(".git", "COMMIT_EDITMSG");
+    if (!fs.existsSync(msgPath)) return null;
+    const msg = fs.readFileSync(msgPath, "utf8");
+    const hasAiHeavy = /\[AI-Heavy\]/i.test(msg);
+    return { msg, hasAiHeavy };
+  } catch {
+    return null;
+  }
+}
+
+// ---------- main ----------
+
+function main() {
+  const args = process.argv.slice(2);
+  let files = [];
+
+  if (args.includes("--all")) {
+    files = getAllFiles(process.cwd());
+    console.log(colorize(`[ai-content-guard] Scanning entire repository (${files.length} files)...`, COLORS.gray));
+  } else if (args.includes("--files")) {
+    files = args.slice(args.indexOf("--files") + 1);
+    console.log(colorize(`[ai-content-guard] Scanning ${files.length} specified file(s)...`, COLORS.gray));
+  } else {
+    files = getStagedFiles();
+    console.log(colorize(`[ai-content-guard] Scanning ${files.length} staged file(s)...`, COLORS.gray));
+  }
+
+  files = files.filter(shouldScanFile);
+
+  if (files.length === 0) {
+    console.log(colorize("[ai-content-guard] No scannable files. Done.", COLORS.gray));
+    process.exit(0);
+  }
+
+  let allFindings = [];
+  for (const file of files) {
+    allFindings = allFindings.concat(scanFile(file));
+  }
+
+  printFindings(allFindings);
+
+  const critical = allFindings.filter(f => f.severity === "critical").length;
+  const high = allFindings.filter(f => f.severity === "high").length;
+  const medium = allFindings.filter(f => f.severity === "medium").length;
+
+  console.log(`  ${colorize("critical", COLORS.red)}: ${critical}   ${colorize("high", COLORS.yellow)}: ${high}   ${colorize("medium", COLORS.gray)}: ${medium}\n`);
+
+  // AI-Heavy tag advisory (best effort)
+  const tag = checkAiHeavyTag();
+  if (tag && !tag.hasAiHeavy && allFindings.some(f => f.file.match(/\.(cs|ts|tsx|jsx|js|py)$/))) {
+    console.log(colorize("  ℹ If significant portions of this change were AI-generated, add [AI-Heavy] to the commit message subject.", COLORS.blue));
+    console.log(colorize("    This triggers the second-reviewer requirement (AGENTS.md §8).\n", COLORS.gray));
+  }
+
+  if (critical + high > 0) {
+    console.log(colorize("✗ Commit blocked by AI Content Guard.", COLORS.red));
+    console.log(colorize("  Resolve the findings above and try again.", COLORS.gray));
+    console.log(colorize("  See AGENTS.md for policy details.\n", COLORS.gray));
+    process.exit(1);
+  } else if (medium > 0) {
+    console.log(colorize("⚠ AI Content Guard: medium-severity findings — commit allowed but please review.\n", COLORS.yellow));
+    process.exit(0);
+  } else {
+    process.exit(0);
+  }
+}
+
+main();

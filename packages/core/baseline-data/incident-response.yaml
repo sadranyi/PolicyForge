@@ -1,0 +1,674 @@
+# PolicyForge baseline — Incident response policy
+# =================================================
+# This file defines the rules PolicyForge applies when reviewing an
+# incident response policy document — not the playbooks themselves,
+# and not the codebase or SIEM configuration.
+#
+# Intentional scope: reviews policy completeness across team structure,
+# severity model, response phases, communications, regulatory compliance,
+# testing, post-incident review, and AI-specific incident scenarios.
+#
+# Boundary with other baselines:
+#   - The AI usage policy baseline has one rule about AI-IR integration.
+#     This baseline goes three rules deep on AI-specific incidents,
+#     because IR is its primary subject.
+#   - The secure coding standards baseline references the IR process.
+#     This baseline defines what that process actually contains.
+#
+# Schema version: 1.0 (compatible with the other baselines)
+# License: Apache-2.0
+
+baseline:
+  id: incident-response
+  name: Incident Response Policy Baseline
+  version: 1.0.0
+  last_reviewed: 2026-04-30
+  description: |
+    Reviews incident response policies against published frameworks for
+    completeness across the operational lifecycle: detection, classification,
+    containment, communication, regulatory notification, post-incident
+    review, and the now-essential AI-specific scenarios.
+
+    Designed to identify policy-level gaps — a missing severity tier, an
+    undefined escalation path, an absent regulatory notification window —
+    rather than operational defects in any specific incident response.
+    A staff IR engineer reading the policy will catch nuances this baseline
+    won't. Use it as a competent first pass, not an endpoint.
+
+  citations:
+    - id: nist-sp-800-61
+      name: NIST SP 800-61 Computer Security Incident Handling Guide
+      version: "Rev. 2"
+      url: https://csrc.nist.gov/publications/detail/sp/800-61/rev-2/final
+    - id: nist-sp-800-53
+      name: NIST SP 800-53 Security and Privacy Controls
+      version: "Rev. 5"
+      url: https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final
+    - id: iso-27035
+      name: ISO/IEC 27035-1 Information security incident management
+      version: "2023"
+      url: https://www.iso.org/standard/78973.html
+    - id: gdpr-art-33
+      name: GDPR Article 33 — Breach notification to supervisory authority
+      version: "Regulation (EU) 2016/679"
+      url: https://gdpr-info.eu/art-33-gdpr/
+    - id: nis2-directive
+      name: NIS2 Directive — reporting obligations
+      version: "Directive (EU) 2022/2555"
+      url: https://eur-lex.europa.eu/eli/dir/2022/2555/oj
+    - id: cisa-ir-playbooks
+      name: CISA Cybersecurity Incident & Vulnerability Response Playbooks
+      version: "November 2021"
+      url: https://www.cisa.gov/sites/default/files/publications/Federal_Government_Cybersecurity_Incident_and_Vulnerability_Response_Playbooks_508C.pdf
+
+# ============================================================
+# RULES
+# ============================================================
+# Severity rubric for this baseline:
+#   Critical — absence of this rule creates direct legal, regulatory, or
+#              operational exposure. Examples: no severity model, no
+#              regulatory notification window, no defined containment path.
+#   High     — absence weakens incident response meaningfully but a mature
+#              team can compensate through experience. Examples: undefined
+#              escalation paths, no evidence preservation requirement.
+#   Medium   — important to address but recoverable through judgment.
+
+rules:
+
+  # ============================================================
+  # CATEGORY: Foundational
+  # ============================================================
+  - id: foundational-scope-and-ownership
+    category: Foundational
+    title: Policy declares scope and names the incident response owner
+    description: |
+      An IR policy that doesn't name its owner ends up owned by no one.
+      The policy must declare which systems and incidents it covers and
+      identify the team or individual accountable for the IR program.
+    severity: Critical
+    citations:
+      - nist-sp-800-61
+      - iso-27035
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - '(incident response|ir) (team|coordinator|manager|lead|owner)'
+        - 'csirt|cirt|sirt|security operations center|soc'
+        - '(this (policy|document)).{0,80}(applies|covers|scope)'
+        - 'scope.{0,60}(incident|response)'
+    suggested_resolution: |
+      Add an opening section naming the incident response owner (a role,
+      not a person — e.g., "Director of Security Operations") and the
+      scope of the policy (which systems, which classes of incident,
+      which entities are covered). Reference the team structure: who
+      forms the standing IR team and who joins on-call.
+
+  - id: foundational-incident-definition
+    category: Foundational
+    title: Policy distinguishes incident from event and observation
+    description: |
+      Without a clear definition, every alert becomes an incident, response
+      capacity is consumed by noise, and real incidents go undetected.
+      The policy should define what counts as an incident vs. an event
+      vs. a routine observation, with examples for each.
+    severity: High
+    citations:
+      - nist-sp-800-61
+      - iso-27035
+    evidence_patterns:
+      positive:
+        - 'definition.{0,30}incident'
+        - 'incident.{0,30}(defined as|means|is)'
+        - 'event vs.{0,5}incident|incident vs.{0,5}event'
+        - '(security event|security incident).{0,80}(definition|distinguish)'
+    suggested_resolution: |
+      Define the three terms operationally:
+        * **Event** — an observed occurrence in a system or network
+          (e.g., a failed login, a port scan, a config change).
+        * **Incident** — an event that violates security policy, threatens
+          confidentiality, integrity, or availability, or causes harm to
+          the organization or its customers.
+        * **Observation** — a finding that doesn't meet incident criteria
+          but warrants logging or follow-up.
+      Provide two or three concrete examples for each.
+
+  - id: foundational-classification-link
+    category: Foundational
+    title: Reference to data classification taxonomy
+    description: |
+      Many IR decisions depend on the sensitivity of the data involved
+      (notification timelines, escalation thresholds, retention of
+      evidence). The policy should reference the organization's data
+      classification taxonomy rather than redefine sensitivity inline.
+    severity: Medium
+    citations:
+      - iso-27035
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - 'data classification (policy|standard|taxonomy|tier|level)'
+        - '(restricted|confidential|sensitive) data.{0,80}(incident|notification|response)'
+        - 'classification.{0,40}(notification|incident|response)'
+    suggested_resolution: |
+      Reference your organization's data classification policy by name
+      and version. Map response intensity to classification tier — e.g.,
+      "An incident involving Restricted data triggers immediate Legal
+      and Executive notification regardless of operational severity."
+
+  # ============================================================
+  # CATEGORY: Severity & escalation
+  # ============================================================
+  - id: severity-classification-model
+    category: Severity model
+    title: Defined severity tiers with concrete examples
+    description: |
+      A severity model is what turns abstract incident handling into
+      operational triage. Without one, every responder applies their
+      own judgment, which produces inconsistent outcomes and makes
+      after-action review difficult. The policy must define severity
+      tiers (S1/S2/S3 or P1/P2/P3 or equivalent) with concrete examples
+      so that the on-call engineer knows where an incident lands.
+    severity: Critical
+    citations:
+      - nist-sp-800-61
+      - cisa-ir-playbooks
+    evidence_patterns:
+      positive:
+        - '(severity|priority)\s*(tier|level)'
+        - '(s1|s2|s3|p1|p2|p3|critical|high|medium|low).{0,80}(incident|severity|priority)'
+        - 'severity (matrix|model|definition|criteria)'
+        - '(critical|high|medium|low).{0,40}(severity|priority).{0,80}(example|definition)'
+    suggested_resolution: |
+      Define at least three severity tiers (four is more common). For each:
+        * Plain-language definition
+        * Two or three concrete examples
+        * Required response time (acknowledge, contain, communicate)
+        * Required escalation path
+      Common scheme: S1 (critical, immediate exec involvement), S2 (high,
+      response team activated within hours), S3 (medium, business-hours
+      response), S4 (low, tracked but no immediate action).
+
+  - id: severity-escalation-thresholds
+    category: Severity model
+    title: Escalation paths and notification timelines per severity
+    description: |
+      The severity tier should drive who is notified and when. Without
+      defined thresholds, escalation depends on the responder's
+      relationships and the time of day, both of which fail under
+      stress.
+    severity: High
+    citations:
+      - nist-sp-800-61
+      - iso-27035
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - 'escalation (path|matrix|criteria|threshold)'
+        - 'notify.{0,40}(executive|leadership|legal|ciso|cio).{0,40}(within|hour)'
+        - '(within \d+ (minute|hour|day)).{0,80}(notify|escalate|inform)'
+        - '(executive|leadership|board).{0,40}notification'
+    suggested_resolution: |
+      For each severity tier, name:
+        * Who is notified first (on-call, IR coordinator, manager)
+        * Who is notified next, and within what timeframe
+        * When Legal must be looped in (typically S1 immediately;
+          S2 if customer or regulated data may be affected)
+        * When executive leadership must be informed
+      Use clock times (e.g., "within 30 minutes of declaration"), not
+      vague language like "promptly" or "as soon as possible."
+
+  - id: severity-on-call-rotation
+    category: Severity model
+    title: On-call rotation defined or referenced
+    description: |
+      The policy should name (or reference) the on-call rotation that
+      receives incident alerts. A 24/7 on-call expectation requires
+      explicit rostering, handoff procedures, and a documented secondary.
+    severity: Medium
+    citations:
+      - nist-sp-800-61
+      - iso-27035
+    evidence_patterns:
+      positive:
+        - 'on[- ]call (rotation|rota|schedule|engineer|responder)'
+        - '24[/x ]7.{0,40}(coverage|response|on[- ]call)'
+        - '(primary|secondary) (on[- ]call|responder)'
+        - '(pagerduty|opsgenie|victorops|incident\.io)'
+    suggested_resolution: |
+      Reference the on-call rotation system (PagerDuty, Opsgenie, etc.)
+      and document the structure: who is primary, who is secondary,
+      what hours the rotation covers, what the handoff cadence is.
+      State the maximum acknowledgment time before automatic escalation.
+
+  # ============================================================
+  # CATEGORY: Response phases
+  # ============================================================
+  - id: response-detection-and-triage
+    category: Response phases
+    title: Detection sources and initial triage process
+    description: |
+      Incidents arrive from many channels: SIEM alerts, customer reports,
+      monitoring tools, internal reports, third-party notifications.
+      The policy should enumerate these sources and define the initial
+      triage flow — who logs the incident, who validates it, what fields
+      are captured at intake.
+    severity: High
+    citations:
+      - nist-sp-800-61
+      - cisa-ir-playbooks
+    evidence_patterns:
+      positive:
+        - '(detection|triage) (process|workflow|procedure)'
+        - '(siem|monitoring|alert|customer report|internal report|external report)'
+        - 'incident (intake|triage|validation|logging)'
+        - 'initial (assessment|response|triage)'
+    suggested_resolution: |
+      Document the detection sources the IR team monitors and the
+      triage flow:
+        1. Source registers an alert / report
+        2. On-call engineer acknowledges and validates
+        3. Severity classification (see severity model)
+        4. Incident record created with required fields (time of
+           detection, source, affected systems, initial severity)
+        5. Escalation per severity matrix
+
+  - id: response-containment-eradication-recovery
+    category: Response phases
+    title: Containment, eradication, and recovery lifecycle
+    description: |
+      The NIST IR lifecycle (containment → eradication → recovery)
+      separates "stop the bleeding" from "remove the cause" from
+      "restore service." Conflating them leads to incomplete responses
+      where the symptom is fixed but the root cause remains active.
+    severity: Critical
+    citations:
+      - nist-sp-800-61
+      - cisa-ir-playbooks
+      - iso-27035
+    evidence_patterns:
+      positive:
+        - 'containment.{0,40}(eradication|recovery)'
+        - 'eradication.{0,40}(recovery|root cause)'
+        - 'incident (lifecycle|phases|stages)'
+        - '(short[- ]term|long[- ]term) containment'
+    suggested_resolution: |
+      Document the four phases as distinct steps:
+        * **Containment** — stop the immediate harm. May be
+          short-term (network isolation, account disable) or
+          long-term (system rebuild, credential rotation).
+        * **Eradication** — remove the root cause. Identify how
+          the incident occurred and close that path.
+        * **Recovery** — restore normal operations with verification
+          that the eradication held.
+        * **Lessons learned** — feeds the post-incident review.
+      Include criteria for moving between phases (e.g., "containment
+      complete only when affected systems are isolated AND credentials
+      potentially exposed have been rotated").
+
+  - id: response-evidence-preservation
+    category: Response phases
+    title: Evidence preservation requirement
+    description: |
+      Incidents that may involve regulatory action, law enforcement,
+      or customer litigation require preserved evidence — logs, system
+      images, screenshots, communications. A policy that doesn't
+      address evidence preservation creates a gap that surfaces
+      months later when counsel asks for proof.
+    severity: High
+    citations:
+      - nist-sp-800-61
+      - iso-27035
+      - cisa-ir-playbooks
+    evidence_patterns:
+      positive:
+        - 'evidence (preservation|collection|chain of custody)'
+        - 'forensic.{0,40}(preservation|capture|image|copy)'
+        - 'preserve.{0,30}(log|evidence|record|state)'
+        - 'chain of custody'
+    suggested_resolution: |
+      Require evidence preservation for any S1/S2 incident and any
+      incident potentially involving regulated data:
+        * Logs from affected systems (preserve before rotation)
+        * System state at time of detection (memory, disk image
+          if appropriate)
+        * Screenshots of relevant interfaces
+        * Internal communications about the incident (Slack, email)
+      Define retention period (typically 1 year minimum, longer if
+      litigation hold applies). Identify who owns evidence custody.
+
+  # ============================================================
+  # CATEGORY: Communications
+  # ============================================================
+  - id: comms-internal
+    category: Communications
+    title: Internal communications during an incident
+    description: |
+      During an active incident, the question of "who knows what" matters
+      a lot. Without a defined internal-comms cadence, either everyone
+      gets paged for every incident (alert fatigue) or critical
+      stakeholders find out from social media (worse).
+    severity: High
+    citations:
+      - nist-sp-800-61
+      - iso-27035
+    evidence_patterns:
+      positive:
+        - 'internal (communication|notification|comms)'
+        - '(slack channel|incident channel|war room|bridge call)'
+        - 'status update.{0,40}(cadence|frequency|hourly)'
+        - 'internal stakeholder.{0,40}(notification|communication)'
+    suggested_resolution: |
+      Define internal communication during an incident:
+        * Dedicated Slack channel or equivalent (named convention,
+          e.g., #incident-YYYYMMDD-shortname)
+        * Bridge call expectation for S1/S2 — who joins, when
+        * Status update cadence (typically every 30 minutes for S1,
+          every hour for S2, until containment achieved)
+        * Audience-tailored summaries: technical detail for engineering,
+          impact summary for executive leadership
+
+  - id: comms-external-customer
+    category: Communications
+    title: Customer notification process — Legal-led
+    description: |
+      Customer notifications during a security incident are the highest-
+      stakes external communications a company sends. They must be
+      Legal-led (or at least Legal-reviewed) and should never be
+      improvised under pressure. Missing this rule risks both
+      under-disclosure (regulatory exposure) and over-disclosure
+      (operational security harm, panic).
+    severity: Critical
+    citations:
+      - gdpr-art-33
+      - nis2-directive
+      - nist-sp-800-61
+    evidence_patterns:
+      positive:
+        - '(customer|external) notification.{0,80}(legal|counsel|approval)'
+        - 'legal.{0,40}(led|review|approval).{0,40}(notification|communication|disclosure)'
+        - '(communication|disclosure|notification).{0,40}legal[- ]?(led|reviewed|approved)'
+        - 'legal[- ]?led'
+        - 'customer[- ]facing.{0,80}(legal|counsel)'
+        - 'customer communication (template|process|approval)'
+        - '(disclose|notify).{0,40}(customer|affected (party|user))'
+    suggested_resolution: |
+      Establish that all customer-facing incident communications are
+      Legal-led:
+        * Legal owns the notification decision (whether to notify, when,
+          and how) for any incident affecting customer data or service
+        * Communications use pre-approved templates where possible
+        * Specific responders are pre-designated to deliver notifications
+          (typically: dedicated Customer Success contact for affected
+          accounts; PR/Communications for broader disclosure)
+        * No engineer or operations responder communicates externally
+          without explicit Legal approval
+
+  - id: comms-regulatory
+    category: Communications
+    title: Regulatory notification timelines and triggers
+    description: |
+      Regulatory notification windows are the most time-bound element
+      of any IR policy. GDPR's 72-hour clock starts from awareness, not
+      from confirmation. NIS2 requires 24-hour early warning. SEC rules
+      require disclosure within 4 business days of materiality determination.
+      A policy that doesn't enumerate the relevant regimes will miss them.
+    severity: Critical
+    citations:
+      - gdpr-art-33
+      - nis2-directive
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - '(72[- ]hour|72 hour).{0,40}(gdpr|notification|regulator)'
+        - 'gdpr.{0,40}(notification|breach)'
+        - '(nis2|nis 2|nis-2).{0,40}(notification|reporting)'
+        - 'regulatory (notification|reporting|disclosure)'
+        - '(sec|securities and exchange).{0,40}(disclosure|reporting)'
+    suggested_resolution: |
+      Enumerate the regulatory regimes that apply and their notification
+      windows:
+        * **GDPR Article 33** — 72 hours from awareness, supervisory
+          authority. Triggered by personal-data breach unless unlikely
+          to risk individuals' rights.
+        * **NIS2 (EU 2022/2555)** — 24-hour early warning, 72-hour
+          incident notification, 1-month final report. Applies to
+          essential and important entities.
+        * **SEC Form 8-K Item 1.05** — 4 business days from materiality
+          determination, for public companies.
+        * **Sector-specific** — HIPAA breach notification, PCI DSS
+          notification to acquirer, GLBA Safeguards Rule, state
+          breach notification laws.
+      Identify trigger criteria for each (data classes, threshold of
+      affected individuals). Identify who decides applicability —
+      typically Legal in consultation with the Data Protection Officer.
+
+  # ============================================================
+  # CATEGORY: AI-specific incidents
+  # ============================================================
+  - id: ai-data-leak-scenarios
+    category: AI-specific incidents
+    title: Customer data leakage to AI services as an incident class
+    description: |
+      Data pasted into a non-tenant-bound AI service is a disclosure
+      event that traditional DLP and SIEM tooling will not catch. The
+      IR policy must explicitly recognize this as an incident class
+      with its own triage path. This is the most common AI-related
+      incident class in 2026 and the one most likely to trigger
+      regulatory notification.
+    severity: Critical
+    citations:
+      - gdpr-art-33
+      - nist-sp-800-61
+      - iso-27035
+    evidence_patterns:
+      positive:
+        - '(customer|sensitive|confidential|production) data.{0,40}(ai|llm|chatgpt|claude|copilot|gemini)'
+        - '(ai|llm|chatgpt|claude).{0,40}(data leak|disclosure|exposure|paste)'
+        - 'pasted into.{0,40}(ai|llm|service)'
+        - 'ai (service|tool|provider).{0,40}(incident|leak|disclosure)'
+    suggested_resolution: |
+      Add a named incident class — "Data leakage to AI service" — with
+      its own triage steps:
+        * Identify what data was pasted, into which service, by whom
+        * Classify the service (tenant-bound vs. consumer; training-on
+          vs. training-off)
+        * Engage the AI provider's privacy team for deletion request
+          (Anthropic, OpenAI, Google, etc. each have a process)
+        * Rotate any secrets or credentials present in the leaked data
+        * Apply the customer-notification process if customer data was
+          involved (this is a disclosure even though the receiving party
+          is a vendor, not a malicious actor)
+        * Apply regulatory notification analysis (GDPR specifically may
+          apply because personal data has been transmitted to a
+          third-party processor without proper basis)
+
+  - id: ai-agent-misbehavior
+    category: AI-specific incidents
+    title: Agent misbehavior and MCP server compromise as incident classes
+    description: |
+      Agentic systems (Claude Code, GitHub Copilot agents, custom MCP
+      integrations) can take destructive actions on behalf of users.
+      Policies that treat AI as a chat interface miss the threat model
+      where an agent executes commands, modifies files, or calls APIs
+      based on prompt-injected instructions. The IR policy should
+      acknowledge this class of incident.
+    severity: High
+    citations:
+      - nist-sp-800-61
+      - iso-27035
+    evidence_patterns:
+      positive:
+        - '(ai agent|agentic|mcp server).{0,40}(misbehavior|incident|response)'
+        - 'agent.{0,30}(took|executed|performed).{0,40}(unintended|unauthorized|did not)'
+        - 'agentic (action|incident|response)'
+        - '(unintended|unauthorized) (agent|automation|tool) action'
+        - '(agent|automation) (misbehavior|misbehaviour)'
+        - '(took|executed|performed).{0,40}action.{0,40}(did not (intend|authorize)|user did not)'
+        - 'mcp server.{0,40}(compromis|misconfigur|incident)'
+    suggested_resolution: |
+      Add an incident class — "Agent or automation misbehavior" — covering:
+        * AI agent took an action the user did not intend (deletion,
+          deployment, sending email, accessing data)
+        * MCP server connection compromised or misconfigured to grant
+          excessive scope
+        * AI integration credential leaked, allowing third-party agent
+          access to internal systems
+      Triage: stop the agent immediately; preserve session logs;
+      enumerate what actions were actually taken (don't trust the
+      conversation log alone); evaluate blast radius; rotate any
+      credentials the agent had access to.
+
+  - id: ai-prompt-injection
+    category: AI-specific incidents
+    title: Prompt injection acknowledged as an attack class
+    description: |
+      Prompt injection is the AI-era equivalent of SQL injection — the
+      attack class that exploits trust boundaries between data and
+      instructions. IR policies that don't acknowledge it cannot
+      respond to it consistently. This rule does not require deep
+      technical detail; it requires policy-level acknowledgment that
+      prompt injection is a threat the IR program tracks.
+    severity: Medium
+    citations:
+      - nist-sp-800-61
+    evidence_patterns:
+      positive:
+        - 'prompt injection'
+        - 'indirect prompt injection'
+        - '(jailbreak|jailbroken).{0,40}(ai|llm|model)'
+        - '(adversarial|malicious) (prompt|input).{0,40}(ai|llm)'
+    suggested_resolution: |
+      Add a brief acknowledgment that prompt injection is a recognized
+      attack class. Reference the OWASP LLM Top 10 (LLM01) for technical
+      detail. Note that detection is qualitatively different from
+      traditional injection attacks: the indicators are behavioral
+      (the model did something unexpected) rather than pattern-based.
+      Treat reports of suspected prompt injection as S2 by default
+      with possible escalation depending on what action was triggered.
+
+  # ============================================================
+  # CATEGORY: Testing & training
+  # ============================================================
+  - id: testing-tabletop-exercises
+    category: Testing
+    title: Tabletop exercise cadence
+    description: |
+      An untested IR plan is a hypothesis, not a plan. The policy should
+      require periodic tabletop exercises to validate the plan against
+      realistic scenarios and surface gaps before they surface during
+      a real incident.
+    severity: High
+    citations:
+      - nist-sp-800-61
+      - iso-27035
+      - cisa-ir-playbooks
+    evidence_patterns:
+      positive:
+        - 'tabletop (exercise|drill|simulation)'
+        - 'ir.{0,30}(exercise|simulation|drill).{0,40}(annual|quarterly|cadence)'
+        - 'incident response.{0,40}(test|exercise|drill)'
+        - 'crisis (simulation|exercise|drill)'
+    suggested_resolution: |
+      Require tabletop exercises:
+        * **Cadence** — at minimum annually; quarterly is better for
+          mature programs.
+        * **Scope** — the exercise should test the IR plan end-to-end:
+          detection, classification, escalation, communications,
+          regulatory analysis.
+        * **Scenarios** — rotate through scenarios that exercise
+          different paths (insider, external attacker, regulated-data
+          breach, third-party compromise, AI-related incident).
+        * **Outputs** — every exercise produces an after-action report
+          with identified gaps and corrective actions.
+
+  - id: training-onboarding
+    category: Training
+    title: IR awareness in onboarding
+    description: |
+      Engineers and operations staff are typically the first to detect
+      incidents. They need to know the basics — how to report, who to
+      contact, what counts as an incident — from day one.
+    severity: Medium
+    citations:
+      - nist-sp-800-53
+      - iso-27035
+    evidence_patterns:
+      positive:
+        - 'incident response.{0,40}(training|awareness|onboard)'
+        - 'security (incident|awareness) training'
+        - 'onboard.{0,40}(security|incident response)'
+        - 'how to report.{0,40}(incident|security)'
+    suggested_resolution: |
+      Require IR awareness training during onboarding for all engineering
+      and operations staff:
+        * How to recognize a potential incident
+        * How to report it (channel, on-call, after-hours path)
+        * Expectation of evidence preservation (don't delete, don't
+          remediate without authorization, do screenshot)
+        * Annual refresh, ideally tied to a tabletop exercise
+        * Specific module on AI-related incidents (data leakage,
+          agent misbehavior) for any role using AI tools
+
+  # ============================================================
+  # CATEGORY: Post-incident review
+  # ============================================================
+  - id: pir-mandatory-cadence
+    category: Post-incident review
+    title: Post-incident review required within stated window
+    description: |
+      Post-incident review (sometimes called postmortem, retrospective,
+      or after-action) is what converts an incident into organizational
+      learning. Without a defined cadence, PIRs slip and the lessons
+      are lost. The policy must require PIR within a defined window of
+      incident closure for incidents above a stated severity threshold.
+    severity: Critical
+    citations:
+      - nist-sp-800-61
+      - iso-27035
+      - cisa-ir-playbooks
+    evidence_patterns:
+      positive:
+        - '(post[- ]incident review|postmortem|post[- ]mortem|after[- ]action)'
+        - 'pir.{0,40}(within|required|mandatory|cadence)'
+        - 'lessons learned.{0,40}(review|process|document)'
+        - '(post[- ]incident|after[- ]action) (review|report)'
+    suggested_resolution: |
+      Require PIR for every Critical and High incident:
+        * Within a stated window of incident closure (10 business days
+          is typical; some organizations use 5 for higher severities)
+        * Documented in a standard format covering: timeline, what
+          happened, what we did well, what we did poorly, root cause(s),
+          corrective actions with owners and due dates
+        * Tracked: corrective actions appear in a reviewed backlog
+          until closed
+        * Reviewed at executive level for any S1 or material incident
+
+  - id: pir-non-punitive
+    category: Post-incident review
+    title: Post-incident review is non-punitive
+    description: |
+      The single biggest predictor of whether an organization actually
+      learns from incidents is whether engineers feel safe being honest
+      about what happened. A PIR culture that punishes individuals
+      converts incidents from learning opportunities into hide-the-truth
+      events. The policy must explicitly state that PIRs are non-punitive
+      and focus on systemic causes.
+    severity: High
+    citations:
+      - nist-sp-800-61
+    evidence_patterns:
+      positive:
+        - '(non[- ]punitive|blameless|no[- ]blame)'
+        - 'systemic (cause|failure)'
+        - '(focus on|emphasize).{0,30}(system|process|cause).{0,40}(not|rather than).{0,40}(individual|person|blame)'
+        - 'just culture'
+    suggested_resolution: |
+      Add an explicit statement: "Post-incident reviews are non-punitive.
+      The objective is to identify systemic causes — gaps in tooling,
+      process, training, or design — that enabled the incident, not to
+      identify individual fault. Engineers participating in PIRs are
+      expected to be candid; their candor will not be used against them
+      in performance review or disciplinary action."
+      Without this statement, the legal default in most jurisdictions
+      is that information disclosed in a PIR can be used in disciplinary
+      proceedings. Stating non-punitive policy explicitly closes that gap.

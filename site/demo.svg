@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 454" width="580" height="454" font-family="'IBM Plex Mono', Consolas, 'Courier New', monospace" font-size="13">
+  <title>PolicyForge CLI demo &#x2014; wizard flow</title>
+  <desc>Animated terminal recording of the policyforge wizard.</desc>
+
+  <!-- Clip the visible terminal window so scrolled content stays inside -->
+  <defs>
+    <clipPath id="window">
+      <rect x="0" y="26" width="580" height="428"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background -->
+  <rect width="580" height="454" fill="#1a1a1a"/>
+
+  <!-- Title bar -->
+  <rect x="0" y="0" width="580" height="26" fill="#2a2a2a"/>
+  <line x1="0" y1="26" x2="580" y2="26" stroke="#1a1a1a" stroke-width="1"/>
+  <circle cx="18" cy="15" r="5" fill="#444444"/>
+  <circle cx="36" cy="15" r="5" fill="#444444"/>
+  <circle cx="54" cy="15" r="5" fill="#444444"/>
+  <text x="562" y="19" fill="#888888" font-size="11" text-anchor="end">policyforge &#x2014; wizard</text>
+
+  <!-- Scrollable content -->
+  <g clip-path="url(#window)">
+    <g>
+      <animateTransform attributeName="transform" attributeType="XML" type="translate"
+        from="0 0" to="0 -432"
+        begin="11.69s" dur="7.57s" fill="freeze"
+        calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1"/>
+      <text x="18.0" y="54" fill="#2d8585" opacity="0">$<set attributeName="opacity" to="1" begin="0.00s"/></text>
+      <text x="25.6" y="54" fill="#2d8585" opacity="0">&#160;<set attributeName="opacity" to="1" begin="0.04s"/></text>
+      <text x="33.2" y="54" fill="#f4ecd8" opacity="0">n<set attributeName="opacity" to="1" begin="0.09s"/></text>
+      <text x="40.8" y="54" fill="#f4ecd8" opacity="0">p<set attributeName="opacity" to="1" begin="0.14s"/></text>
+      <text x="48.4" y="54" fill="#f4ecd8" opacity="0">x<set attributeName="opacity" to="1" begin="0.18s"/></text>
+      <text x="56.0" y="54" fill="#f4ecd8" opacity="0">&#160;<set attributeName="opacity" to="1" begin="0.22s"/></text>
+      <text x="63.6" y="54" fill="#f4ecd8" opacity="0">p<set attributeName="opacity" to="1" begin="0.27s"/></text>
+      <text x="71.2" y="54" fill="#f4ecd8" opacity="0">o<set attributeName="opacity" to="1" begin="0.32s"/></text>
+      <text x="78.8" y="54" fill="#f4ecd8" opacity="0">l<set attributeName="opacity" to="1" begin="0.36s"/></text>
+      <text x="86.4" y="54" fill="#f4ecd8" opacity="0">i<set attributeName="opacity" to="1" begin="0.40s"/></text>
+      <text x="94.0" y="54" fill="#f4ecd8" opacity="0">c<set attributeName="opacity" to="1" begin="0.45s"/></text>
+      <text x="101.6" y="54" fill="#f4ecd8" opacity="0">y<set attributeName="opacity" to="1" begin="0.49s"/></text>
+      <text x="109.2" y="54" fill="#f4ecd8" opacity="0">f<set attributeName="opacity" to="1" begin="0.54s"/></text>
+      <text x="116.8" y="54" fill="#f4ecd8" opacity="0">o<set attributeName="opacity" to="1" begin="0.58s"/></text>
+      <text x="124.4" y="54" fill="#f4ecd8" opacity="0">r<set attributeName="opacity" to="1" begin="0.63s"/></text>
+      <text x="132.0" y="54" fill="#f4ecd8" opacity="0">g<set attributeName="opacity" to="1" begin="0.67s"/></text>
+      <text x="139.6" y="54" fill="#f4ecd8" opacity="0">e<set attributeName="opacity" to="1" begin="0.72s"/></text>
+      <text x="147.2" y="54" fill="#f4ecd8" opacity="0">&#160;<set attributeName="opacity" to="1" begin="0.77s"/></text>
+      <text x="154.8" y="54" fill="#f4ecd8" opacity="0">w<set attributeName="opacity" to="1" begin="0.81s"/></text>
+      <text x="162.4" y="54" fill="#f4ecd8" opacity="0">i<set attributeName="opacity" to="1" begin="0.85s"/></text>
+      <text x="170.0" y="54" fill="#f4ecd8" opacity="0">z<set attributeName="opacity" to="1" begin="0.90s"/></text>
+      <text x="177.6" y="54" fill="#f4ecd8" opacity="0">a<set attributeName="opacity" to="1" begin="0.94s"/></text>
+      <text x="185.2" y="54" fill="#f4ecd8" opacity="0">r<set attributeName="opacity" to="1" begin="0.99s"/></text>
+      <text x="192.8" y="54" fill="#f4ecd8" opacity="0">d<set attributeName="opacity" to="1" begin="1.03s"/></text>
+      <text x="18.0" y="72" fill="#e8e8e8" opacity="0"><set attributeName="opacity" to="1" begin="1.68s"/></text>
+      <text x="18.0" y="90" fill="#e8e8e8" opacity="0">PolicyForge &#x2014; interactive setup<set attributeName="opacity" to="1" begin="1.73s"/></text>
+      <text x="18.0" y="126" fill="#6b8e8e" font-style="italic" opacity="0">Step 1 of 4 &#x2014; Policy<set attributeName="opacity" to="1" begin="2.48s"/></text>
+      <text x="18.0" y="144" fill="#2d8585" opacity="0">? Path to your policy document: <set attributeName="opacity" to="1" begin="2.94s"/></text>
+      <text x="261.2" y="144" fill="#f4ecd8" opacity="0">.<set attributeName="opacity" to="1" begin="3.14s"/></text>
+      <text x="268.8" y="144" fill="#f4ecd8" opacity="0">/<set attributeName="opacity" to="1" begin="3.19s"/></text>
+      <text x="276.4" y="144" fill="#f4ecd8" opacity="0">e<set attributeName="opacity" to="1" begin="3.23s"/></text>
+      <text x="284.0" y="144" fill="#f4ecd8" opacity="0">x<set attributeName="opacity" to="1" begin="3.28s"/></text>
+      <text x="291.6" y="144" fill="#f4ecd8" opacity="0">a<set attributeName="opacity" to="1" begin="3.32s"/></text>
+      <text x="299.2" y="144" fill="#f4ecd8" opacity="0">m<set attributeName="opacity" to="1" begin="3.37s"/></text>
+      <text x="306.8" y="144" fill="#f4ecd8" opacity="0">p<set attributeName="opacity" to="1" begin="3.41s"/></text>
+      <text x="314.4" y="144" fill="#f4ecd8" opacity="0">l<set attributeName="opacity" to="1" begin="3.46s"/></text>
+      <text x="322.0" y="144" fill="#f4ecd8" opacity="0">e<set attributeName="opacity" to="1" begin="3.50s"/></text>
+      <text x="329.6" y="144" fill="#f4ecd8" opacity="0">s<set attributeName="opacity" to="1" begin="3.54s"/></text>
+      <text x="337.2" y="144" fill="#f4ecd8" opacity="0">/<set attributeName="opacity" to="1" begin="3.59s"/></text>
+      <text x="344.8" y="144" fill="#f4ecd8" opacity="0">s<set attributeName="opacity" to="1" begin="3.64s"/></text>
+      <text x="352.4" y="144" fill="#f4ecd8" opacity="0">a<set attributeName="opacity" to="1" begin="3.68s"/></text>
+      <text x="360.0" y="144" fill="#f4ecd8" opacity="0">m<set attributeName="opacity" to="1" begin="3.73s"/></text>
+      <text x="367.6" y="144" fill="#f4ecd8" opacity="0">p<set attributeName="opacity" to="1" begin="3.77s"/></text>
+      <text x="375.2" y="144" fill="#f4ecd8" opacity="0">l<set attributeName="opacity" to="1" begin="3.81s"/></text>
+      <text x="382.8" y="144" fill="#f4ecd8" opacity="0">e<set attributeName="opacity" to="1" begin="3.86s"/></text>
+      <text x="390.4" y="144" fill="#f4ecd8" opacity="0">-<set attributeName="opacity" to="1" begin="3.91s"/></text>
+      <text x="398.0" y="144" fill="#f4ecd8" opacity="0">p<set attributeName="opacity" to="1" begin="3.95s"/></text>
+      <text x="405.6" y="144" fill="#f4ecd8" opacity="0">o<set attributeName="opacity" to="1" begin="4.00s"/></text>
+      <text x="413.2" y="144" fill="#f4ecd8" opacity="0">l<set attributeName="opacity" to="1" begin="4.04s"/></text>
+      <text x="420.8" y="144" fill="#f4ecd8" opacity="0">i<set attributeName="opacity" to="1" begin="4.08s"/></text>
+      <text x="428.4" y="144" fill="#f4ecd8" opacity="0">c<set attributeName="opacity" to="1" begin="4.13s"/></text>
+      <text x="436.0" y="144" fill="#f4ecd8" opacity="0">y<set attributeName="opacity" to="1" begin="4.17s"/></text>
+      <text x="443.6" y="144" fill="#f4ecd8" opacity="0">.<set attributeName="opacity" to="1" begin="4.22s"/></text>
+      <text x="451.2" y="144" fill="#f4ecd8" opacity="0">m<set attributeName="opacity" to="1" begin="4.27s"/></text>
+      <text x="458.8" y="144" fill="#f4ecd8" opacity="0">d<set attributeName="opacity" to="1" begin="4.31s"/></text>
+      <text x="18.0" y="162" fill="#7fc080" opacity="0">  &#x2713; Found: 4.2 KB markdown &#xB7; Acme Corp AI Policy v2<set attributeName="opacity" to="1" begin="5.06s"/></text>
+      <text x="18.0" y="198" fill="#6b8e8e" font-style="italic" opacity="0">Step 2 of 4 &#x2014; Your stack<set attributeName="opacity" to="1" begin="5.81s"/></text>
+      <text x="18.0" y="216" fill="#2d8585" opacity="0">? Primary language: <set attributeName="opacity" to="1" begin="6.27s"/></text>
+      <text x="170.0" y="216" fill="#f4ecd8" opacity="0">T<set attributeName="opacity" to="1" begin="6.47s"/></text>
+      <text x="177.6" y="216" fill="#f4ecd8" opacity="0">y<set attributeName="opacity" to="1" begin="6.51s"/></text>
+      <text x="185.2" y="216" fill="#f4ecd8" opacity="0">p<set attributeName="opacity" to="1" begin="6.56s"/></text>
+      <text x="192.8" y="216" fill="#f4ecd8" opacity="0">e<set attributeName="opacity" to="1" begin="6.60s"/></text>
+      <text x="200.4" y="216" fill="#f4ecd8" opacity="0">S<set attributeName="opacity" to="1" begin="6.65s"/></text>
+      <text x="208.0" y="216" fill="#f4ecd8" opacity="0">c<set attributeName="opacity" to="1" begin="6.69s"/></text>
+      <text x="215.6" y="216" fill="#f4ecd8" opacity="0">r<set attributeName="opacity" to="1" begin="6.74s"/></text>
+      <text x="223.2" y="216" fill="#f4ecd8" opacity="0">i<set attributeName="opacity" to="1" begin="6.78s"/></text>
+      <text x="230.8" y="216" fill="#f4ecd8" opacity="0">p<set attributeName="opacity" to="1" begin="6.83s"/></text>
+      <text x="238.4" y="216" fill="#f4ecd8" opacity="0">t<set attributeName="opacity" to="1" begin="6.87s"/></text>
+      <text x="18.0" y="234" fill="#2d8585" opacity="0">? CI system: <set attributeName="opacity" to="1" begin="7.42s"/></text>
+      <text x="116.8" y="234" fill="#f4ecd8" opacity="0">G<set attributeName="opacity" to="1" begin="7.62s"/></text>
+      <text x="124.4" y="234" fill="#f4ecd8" opacity="0">i<set attributeName="opacity" to="1" begin="7.66s"/></text>
+      <text x="132.0" y="234" fill="#f4ecd8" opacity="0">t<set attributeName="opacity" to="1" begin="7.71s"/></text>
+      <text x="139.6" y="234" fill="#f4ecd8" opacity="0">H<set attributeName="opacity" to="1" begin="7.75s"/></text>
+      <text x="147.2" y="234" fill="#f4ecd8" opacity="0">u<set attributeName="opacity" to="1" begin="7.80s"/></text>
+      <text x="154.8" y="234" fill="#f4ecd8" opacity="0">b<set attributeName="opacity" to="1" begin="7.84s"/></text>
+      <text x="162.4" y="234" fill="#f4ecd8" opacity="0">&#160;<set attributeName="opacity" to="1" begin="7.89s"/></text>
+      <text x="170.0" y="234" fill="#f4ecd8" opacity="0">A<set attributeName="opacity" to="1" begin="7.93s"/></text>
+      <text x="177.6" y="234" fill="#f4ecd8" opacity="0">c<set attributeName="opacity" to="1" begin="7.98s"/></text>
+      <text x="185.2" y="234" fill="#f4ecd8" opacity="0">t<set attributeName="opacity" to="1" begin="8.02s"/></text>
+      <text x="192.8" y="234" fill="#f4ecd8" opacity="0">i<set attributeName="opacity" to="1" begin="8.07s"/></text>
+      <text x="200.4" y="234" fill="#f4ecd8" opacity="0">o<set attributeName="opacity" to="1" begin="8.11s"/></text>
+      <text x="208.0" y="234" fill="#f4ecd8" opacity="0">n<set attributeName="opacity" to="1" begin="8.16s"/></text>
+      <text x="215.6" y="234" fill="#f4ecd8" opacity="0">s<set attributeName="opacity" to="1" begin="8.20s"/></text>
+      <text x="18.0" y="252" fill="#2d8585" opacity="0">? Secret store: <set attributeName="opacity" to="1" begin="8.75s"/></text>
+      <text x="139.6" y="252" fill="#f4ecd8" opacity="0">G<set attributeName="opacity" to="1" begin="8.95s"/></text>
+      <text x="147.2" y="252" fill="#f4ecd8" opacity="0">i<set attributeName="opacity" to="1" begin="8.99s"/></text>
+      <text x="154.8" y="252" fill="#f4ecd8" opacity="0">t<set attributeName="opacity" to="1" begin="9.04s"/></text>
+      <text x="162.4" y="252" fill="#f4ecd8" opacity="0">H<set attributeName="opacity" to="1" begin="9.08s"/></text>
+      <text x="170.0" y="252" fill="#f4ecd8" opacity="0">u<set attributeName="opacity" to="1" begin="9.12s"/></text>
+      <text x="177.6" y="252" fill="#f4ecd8" opacity="0">b<set attributeName="opacity" to="1" begin="9.17s"/></text>
+      <text x="185.2" y="252" fill="#f4ecd8" opacity="0">&#160;<set attributeName="opacity" to="1" begin="9.21s"/></text>
+      <text x="192.8" y="252" fill="#f4ecd8" opacity="0">S<set attributeName="opacity" to="1" begin="9.26s"/></text>
+      <text x="200.4" y="252" fill="#f4ecd8" opacity="0">e<set attributeName="opacity" to="1" begin="9.30s"/></text>
+      <text x="208.0" y="252" fill="#f4ecd8" opacity="0">c<set attributeName="opacity" to="1" begin="9.35s"/></text>
+      <text x="215.6" y="252" fill="#f4ecd8" opacity="0">r<set attributeName="opacity" to="1" begin="9.39s"/></text>
+      <text x="223.2" y="252" fill="#f4ecd8" opacity="0">e<set attributeName="opacity" to="1" begin="9.44s"/></text>
+      <text x="230.8" y="252" fill="#f4ecd8" opacity="0">t<set attributeName="opacity" to="1" begin="9.48s"/></text>
+      <text x="238.4" y="252" fill="#f4ecd8" opacity="0">s<set attributeName="opacity" to="1" begin="9.53s"/></text>
+      <text x="18.0" y="288" fill="#6b8e8e" font-style="italic" opacity="0">Step 3 of 4 &#x2014; Review<set attributeName="opacity" to="1" begin="10.28s"/></text>
+      <text x="18.0" y="306" fill="#e8e8e8" opacity="0">  Loading baseline... done (16 rules)<set attributeName="opacity" to="1" begin="10.64s"/></text>
+      <text x="18.0" y="324" fill="#e8e8e8" opacity="0">  Running review...  done<set attributeName="opacity" to="1" begin="10.84s"/></text>
+      <text x="18.0" y="360" fill="#e8e8e8" opacity="0">  Critical  <set attributeName="opacity" to="1" begin="11.49s"/></text>
+      <text x="109.2" y="360" fill="#d97757" opacity="0">&#x2588;&#x2588;&#x2593;&#x2591;&#x2591;&#x2591;&#x2591;&#x2591;<set attributeName="opacity" to="1" begin="11.52s"/></text>
+      <text x="170.0" y="360" fill="#e8e8e8" opacity="0">  2/6 satisfied  &#xB7; 3 gaps<set attributeName="opacity" to="1" begin="11.55s"/></text>
+      <text x="18.0" y="378" fill="#e8e8e8" opacity="0">  High      <set attributeName="opacity" to="1" begin="11.69s"/></text>
+      <text x="109.2" y="378" fill="#e8b665" opacity="0">&#x2588;&#x2588;&#x2591;&#x2591;&#x2591;&#x2591;&#x2591;&#x2591;<set attributeName="opacity" to="1" begin="11.72s"/></text>
+      <text x="170.0" y="378" fill="#e8e8e8" opacity="0">  2/8 satisfied  &#xB7; 6 gaps<set attributeName="opacity" to="1" begin="11.75s"/></text>
+      <text x="18.0" y="396" fill="#e8e8e8" opacity="0">  Medium    <set attributeName="opacity" to="1" begin="11.89s"/></text>
+      <text x="109.2" y="396" fill="#e8b665" opacity="0">&#x2591;&#x2591;&#x2591;&#x2591;&#x2591;&#x2591;&#x2591;&#x2591;<set attributeName="opacity" to="1" begin="11.92s"/></text>
+      <text x="170.0" y="396" fill="#e8e8e8" opacity="0">  0/2 satisfied  &#xB7; 2 gaps<set attributeName="opacity" to="1" begin="11.95s"/></text>
+      <text x="18.0" y="432" fill="#e8e8e8" opacity="0">  Recommendation: <set attributeName="opacity" to="1" begin="12.64s"/></text>
+      <text x="154.8" y="432" fill="#d97757" font-weight="600" opacity="0">material revision required<set attributeName="opacity" to="1" begin="12.69s"/></text>
+      <text x="18.0" y="468" fill="#6b8e8e" font-style="italic" opacity="0">Step 4 of 4 &#x2014; Generate toolkit<set attributeName="opacity" to="1" begin="13.39s"/></text>
+      <text x="18.0" y="486" fill="#2d8585" opacity="0">? Generate enforcement toolkit now? <set attributeName="opacity" to="1" begin="13.85s"/></text>
+      <text x="291.6" y="486" fill="#f4ecd8" opacity="0">Y<set attributeName="opacity" to="1" begin="14.05s"/></text>
+      <text x="299.2" y="486" fill="#f4ecd8" opacity="0">e<set attributeName="opacity" to="1" begin="14.09s"/></text>
+      <text x="306.8" y="486" fill="#f4ecd8" opacity="0">s<set attributeName="opacity" to="1" begin="14.14s"/></text>
+      <text x="18.0" y="522" fill="#7fc080" opacity="0">  &#x2713; Writing AGENTS.md<set attributeName="opacity" to="1" begin="14.88s"/></text>
+      <text x="18.0" y="540" fill="#7fc080" opacity="0">  &#x2713; Writing CLAUDE.md (redirector)<set attributeName="opacity" to="1" begin="15.11s"/></text>
+      <text x="18.0" y="558" fill="#7fc080" opacity="0">  &#x2713; Writing .github/copilot-instructions.md<set attributeName="opacity" to="1" begin="15.34s"/></text>
+      <text x="18.0" y="576" fill="#7fc080" opacity="0">  &#x2713; Writing scripts/ai-content-guard.js<set attributeName="opacity" to="1" begin="15.57s"/></text>
+      <text x="18.0" y="594" fill="#7fc080" opacity="0">  &#x2713; Writing .gitleaks.toml<set attributeName="opacity" to="1" begin="15.80s"/></text>
+      <text x="18.0" y="612" fill="#7fc080" opacity="0">  &#x2713; Writing .husky/pre-commit<set attributeName="opacity" to="1" begin="16.03s"/></text>
+      <text x="18.0" y="630" fill="#7fc080" opacity="0">  &#x2713; Writing .github/workflows/ai-policy-gates.yml<set attributeName="opacity" to="1" begin="16.26s"/></text>
+      <text x="18.0" y="648" fill="#7fc080" opacity="0">  &#x2713; Writing docs/AI_INCIDENT_RUNBOOK.md<set attributeName="opacity" to="1" begin="16.49s"/></text>
+      <text x="18.0" y="666" fill="#7fc080" opacity="0">  &#x2713; Writing review.md<set attributeName="opacity" to="1" begin="16.72s"/></text>
+      <text x="18.0" y="684" fill="#7fc080" opacity="0">  &#x2713; Writing review.json<set attributeName="opacity" to="1" begin="16.95s"/></text>
+      <text x="18.0" y="720" fill="#888888" opacity="0">  10 files written to ./policyforge-output/<set attributeName="opacity" to="1" begin="17.70s"/></text>
+      <text x="18.0" y="756" fill="#7fc080" font-weight="600" opacity="0">Done &#x2014; your toolkit is ready to commit.<set attributeName="opacity" to="1" begin="18.65s"/></text>
+      <text x="18.0" y="792" fill="#2d8585" opacity="0">$<set attributeName="opacity" to="1" begin="19.50s"/></text>
+      <text x="25.6" y="792" fill="#2d8585" opacity="0">&#160;<set attributeName="opacity" to="1" begin="19.55s"/></text>
+    </g>
+  </g>
+
+  <!-- Blinking cursor at final prompt -->
+  <rect x="33.2" y="346" width="9" height="16" fill="#f4ecd8" opacity="0">
+    <set attributeName="opacity" to="1" begin="20.29s"/>
+    <animate attributeName="opacity" values="1;0;1" dur="1.0s" begin="20.29s" repeatCount="indefinite"/>
+  </rect>
+</svg>
