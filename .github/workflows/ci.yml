@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+    name: Node ${{ matrix.node-version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Unit tests (loader, reviewer, generators)
+        run: npm test
+
+      - name: Baseline correctness tests
+        run: node scripts/test-baselines.js
+
+      - name: End-to-end web tests
+        run: node scripts/e2e-test.js
+
+  docker:
+    runs-on: ubuntu-latest
+    name: Docker build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t policyforge:ci .
