@@ -1,0 +1,12 @@
+{
+  "name": "policyforge-mcp",
+  "version": "0.2.0",
+  "description": "PolicyForge MCP server — expose deterministic, framework-cited policy checks to AI assistants",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "bin": { "policyforge-mcp": "src/server.js" },
+  "main": "src/server.js",
+  "scripts": { "start": "node src/server.js", "test": "node --test tests/" },
+  "dependencies": { "policyforge-core": "^0.2.0" },
+  "engines": { "node": ">=18" }
+}
