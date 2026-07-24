@@ -25,9 +25,10 @@ const TEST_CASES = [
   {
     baseline: 'ai-usage-policy',
     bad: path.join(ROOT, 'examples/sample-policy.md'),
-    good: null,  // No comprehensive AI policy sample yet — bad-only test for now.
+    good: path.join(ROOT, 'examples/sample-ai-usage-good.md'),
     expectations: {
       bad: { max_satisfied_ratio: 0.4 },  // bad sample should pass < 40% of rules
+      good: { min_satisfied_ratio: 0.85 }, // good sample should pass >= 85%
     }
   },
   {
