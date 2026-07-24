@@ -88,9 +88,9 @@ async function cmdIncident(args, C) {
   console.log('');
   console.log(`  Deadlines: ${board.length}  ` +
     (overdue ? C.red(`${overdue} overdue  `) : '') +
-    (dueSoon ? C.yellow(`${dueSoon} due soon  `) : ''));
+    (dueSoon ? C.yel(`${dueSoon} due soon  `) : ''));
   for (const d of board.slice(0, 8)) {
-    const tag = d.status === 'OVERDUE' ? C.red('OVERDUE ') : d.status === 'DUE_SOON' ? C.yellow('DUE SOON') : d.status.padEnd(8);
+    const tag = d.status === 'OVERDUE' ? C.red('OVERDUE ') : d.status === 'DUE_SOON' ? C.yel('DUE SOON') : d.status.padEnd(8);
     console.log(`   ${tag}  ${d.dueAt || d.status}  ${d.label}`);
   }
   console.log('');

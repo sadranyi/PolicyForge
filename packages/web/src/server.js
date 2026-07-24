@@ -35,7 +35,34 @@ app.use(express.json({ limit: '5mb' }));
 // ============================================================
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', version: '0.1.0' });
+  res.json({ status: 'ok', version: '0.2.0' });
+});
+
+// ------------------------------------------------------------
+// Runtime guard sidecar — POST /v1/scan
+// Deterministic scan of arbitrary text against the compiled rule pack.
+// The differentiator vs. generic guard APIs: every finding is traceable to a
+// rule id AND a framework citation. Local, no LLM, no network egress.
+// ------------------------------------------------------------
+let _packPromise = null;
+function getPack() {
+  if (!_packPromise) _packPromise = core.compileRulePack();
+  return _packPromise;
+}
+
+app.post('/v1/scan', async (req, res, next) => {
+  try {
+    const body = req.body || {};
+    const text = typeof body.text === 'string' ? body.text : '';
+    if (!text) return res.status(400).json({ error: 'body.text (string) is required' });
+    const pack = await getPack();
+    const result = core.scanText(text, pack, {
+      direction: body.direction === 'output' ? 'output' : 'input',
+      context: ['chat', 'commit', 'tool_call'].includes(body.context) ? body.context : 'chat',
+      redact: body.redact === true,
+    });
+    res.json(result);
+  } catch (err) { next(err); }
 });
 
 app.get('/api/baseline', async (req, res, next) => {
@@ -160,6 +187,7 @@ app.listen(PORT, () => {
   console.log(`  Listening on http://localhost:${PORT}`);
   console.log(`  Health check:  http://localhost:${PORT}/api/health`);
   console.log(`  Baseline view: http://localhost:${PORT}/api/baseline`);
+  console.log(`  Guard sidecar: POST http://localhost:${PORT}/v1/scan`);
   console.log('');
   console.log('  Privacy note: uploaded policies are kept in memory only.');
   console.log('  Nothing is written to disk on this server.');

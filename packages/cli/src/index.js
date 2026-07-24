@@ -17,6 +17,8 @@ const readline = require('readline');
 
 const core = require('policyforge-core');
 const { cmdIncident } = require('./incident-cmd');
+const { cmdScan, cmdGate } = require('./scan-cmd');
+const { cmdHooks } = require('./hooks-cmd');
 
 // ============================================================
 // Argument parsing — minimal, dependency-free
@@ -79,12 +81,18 @@ Usage:
   policyforge review --policy <file> [--baseline ai-usage-policy] [--output <dir>]
   policyforge generate --policy <file> --stack <stack> --ci <ci> [--secret-store <store>] [--output <dir>]
   policyforge incident (--intake <file.json> | --demo) [--now <iso>] [--out <dir>]
+  policyforge scan (--text <s> | --file <f> | -) [--json] [--redact]
+  policyforge gate            # Claude Code hook adapter (stdin JSON -> decision)
+  policyforge hooks [--install]  # print/install Claude Code hook settings
 
 Subcommands:
   ${C.bold('wizard')}     Interactive flow — recommended for first-time use
   ${C.bold('review')}     Review a policy and write a report (no toolkit generated)
   ${C.bold('generate')}   Review + generate a tailored toolkit
   ${C.bold('incident')}   Classify an incident, compute regulatory deadlines, build a dashboard
+  ${C.bold('scan')}       Scan text/stdin for policy violations (exit 1 on block)
+  ${C.bold('gate')}       Claude Code PreToolUse/UserPromptSubmit hook adapter
+  ${C.bold('hooks')}      Print or install the Claude Code hook settings for the gate adapter
 
 Common options:
   --policy <file>         Path to policy document (.md, .markdown, .txt, .docx)
@@ -428,6 +436,9 @@ async function main() {
     else if (subcommand === 'generate') await cmdGenerate(args);
     else if (subcommand === 'wizard') await cmdWizard();
     else if (subcommand === 'incident') await cmdIncident(args, C);
+    else if (subcommand === 'scan') await cmdScan(args, C);
+    else if (subcommand === 'gate') await cmdGate();
+    else if (subcommand === 'hooks') cmdHooks(args, C);
     else {
       console.error(C.red(`Unknown subcommand: ${subcommand}`));
       printUsage();
