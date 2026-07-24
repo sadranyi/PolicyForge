@@ -1,5 +1,5 @@
 {
-  "name": "@policyforge/cli",
+  "name": "policyforge",
   "version": "0.1.0",
   "description": "PolicyForge CLI",
   "license": "Apache-2.0",
@@ -9,7 +9,7 @@
   },
   "main": "src/index.js",
   "dependencies": {
-    "@policyforge/core": "^0.1.0"
+    "policyforge-core": "^0.1.0"
   },
   "engines": {
     "node": ">=18"

@@ -1,5 +1,5 @@
 /**
- * @policyforge/core — public API
+ * policyforge-core — public API
  *
  * Exports the three pipeline stages:
  *   - extractor: turn an input document into normalized text

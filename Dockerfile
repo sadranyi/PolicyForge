@@ -7,7 +7,7 @@ COPY packages/core/package.json ./packages/core/
 COPY packages/web/package.json ./packages/web/
 
 # Skip optional dev workspaces; install only what production needs
-RUN npm install --workspace=@policyforge/core --workspace=@policyforge/web --omit=dev
+RUN npm install --workspace=policyforge-core --workspace=policyforge-web --omit=dev
 
 # Copy source
 COPY packages/core ./packages/core

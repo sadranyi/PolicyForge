@@ -1,7 +1,7 @@
 /**
  * PolicyForge web server
  * ----------------------
- * Thin wrapper around @policyforge/core. Exposes:
+ * Thin wrapper around policyforge-core. Exposes:
  *   POST /api/review         — upload a policy, return JSON review
  *   POST /api/generate       — review + generate toolkit, return zip
  *   GET  /api/baseline       — return the active baseline (for transparency)
@@ -19,7 +19,7 @@ const multer = require('multer');
 const archiver = require('archiver');
 const path = require('path');
 const fs = require('fs');
-const core = require('@policyforge/core');
+const core = require('policyforge-core');
 
 const PORT = process.env.PORT || 3000;
 const upload = multer({

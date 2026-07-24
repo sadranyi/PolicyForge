@@ -18,8 +18,8 @@ Core must be published before (or with) the CLI, since the CLI depends on it by 
 
 ```bash
 npm login                       # one time
-npm publish --workspace @policyforge/core
-npm publish --workspace @policyforge/cli
+npm publish --workspace policyforge-core
+npm publish --workspace policyforge
 ```
 
 The web package is not published to npm; it ships via Docker / self-hosting.
@@ -27,7 +27,7 @@ The web package is not published to npm; it ships via Docker / self-hosting.
 After publishing, verify:
 
 ```bash
-npx @policyforge/cli review --policy examples/sample-ai-usage-good.md --baseline ai-usage-policy
+npx policyforge review --policy examples/sample-ai-usage-good.md --baseline ai-usage-policy
 ```
 
 ## Deploying the site

@@ -1,5 +1,5 @@
 {
-  "name": "@policyforge/core",
+  "name": "policyforge-core",
   "version": "0.1.0",
   "description": "PolicyForge core engine \u2014 extraction, review, and toolkit generation",
   "license": "Apache-2.0",
