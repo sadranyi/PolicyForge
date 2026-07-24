@@ -429,3 +429,72 @@ rules:
       [AI-Heavy] when AI generated substantial portions, require a second
       domain-familiar reviewer for [AI-Heavy] PRs, prohibit AI-synthesized
       cryptography or authentication code without security review.
+
+  # ============================================================
+  # CATEGORY: MCP & Agent Connector Hygiene
+  # Added in v0.2.0 — the runtime research surfaced MCP governance
+  # hygiene as a distinct, under-addressed rule cluster.
+  # ============================================================
+  - id: mcp-allowlist
+    category: MCP Hygiene
+    title: Approved MCP server allowlist maintained
+    description: |
+      The policy should require that AI agents connect only to MCP (Model
+      Context Protocol) servers on an approved allowlist, rather than arbitrary
+      or self-installed servers. Unvetted MCP servers are an untrusted-code and
+      tool-poisoning vector.
+    severity: High
+    citations:
+      - owasp-llm-top10
+      - nist-ai-rmf
+    evidence_patterns:
+      positive:
+        - 'MCP server.{0,40}(allowlist|allow list|approved|whitelist|catalog|registry)'
+        - 'approved.{0,30}MCP'
+        - '(allowlist|allowed list).{0,30}(MCP|connector|agent server)'
+    suggested_resolution: |
+      Require that agents connect only to MCP servers on a maintained approved
+      allowlist. Prohibit self-installed or arbitrary MCP servers. Name the
+      owner of the allowlist and the process to add a server.
+
+  - id: mcp-manifest-version-control
+    category: MCP Hygiene
+    title: MCP configuration under version control and reviewed
+    description: |
+      MCP server configuration (e.g. .mcp.json) should live under version
+      control and be subject to code review, so the set of tools an agent can
+      reach is auditable and change-controlled.
+    severity: Medium
+    citations:
+      - nist-ai-rmf
+      - nist-sp-800-53
+    evidence_patterns:
+      positive:
+        - '\.mcp\.json'
+        - 'MCP (config|configuration|manifest).{0,40}(version control|source control|reviewed|code review|git)'
+        - '(version control|source control).{0,40}MCP'
+    suggested_resolution: |
+      Require MCP configuration (.mcp.json or equivalent) to be committed to
+      version control and reviewed like code. Prohibit local, uncommitted MCP
+      server definitions on work machines.
+
+  - id: mcp-tool-permission-review
+    category: MCP Hygiene
+    title: Tool-permission and scope review for agent connectors
+    description: |
+      The policy should require review of the permissions and scopes granted to
+      agent tools/connectors — especially those that can take destructive
+      actions or read sensitive data — before they are enabled.
+    severity: High
+    citations:
+      - owasp-llm-top10
+      - iso-42001
+    evidence_patterns:
+      positive:
+        - 'tool (permission|scope|access).{0,40}(review|approval|least privilege)'
+        - '(least privilege|scoped permission).{0,40}(agent|tool|connector|MCP)'
+        - 'connector.{0,40}(permission|scope).{0,30}review'
+    suggested_resolution: |
+      Require review of the permissions and scopes granted to each agent tool
+      or MCP connector before enablement, applying least privilege. Flag tools
+      with write/delete or sensitive-read scope for elevated approval.

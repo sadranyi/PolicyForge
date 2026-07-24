@@ -62,6 +62,8 @@ All staff using AI assistants that browse, read email, or process documents must
 
 Connecting AI agents to internal systems via the Model Context Protocol (MCP) or similar connector mechanisms requires registration and approval by the security team. Only MCP servers from the internal approved catalog may be used; agent registration records the systems accessed, the scopes granted, and the accountable owner.
 
+MCP configuration (`.mcp.json`) for every repository is committed to version control and reviewed as code; local, uncommitted MCP server definitions on work machines are prohibited. Before any agent tool or MCP connector is enabled, its granted tool permissions and scopes are reviewed under least privilege, and any connector with write, delete, or sensitive-read scope requires elevated approval. The approved MCP server allowlist is owned by the security team.
+
 ### 5.3 Agent blast radius
 
 Every autonomous agent deployment must have a named agent owner, a documented blast radius describing the systems it can affect, scoped permissions limited to what the task requires, and a tested kill-switch that immediately halts the agent and revokes its credentials.

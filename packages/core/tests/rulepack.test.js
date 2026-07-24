@@ -16,7 +16,7 @@ test('compileRulePack produces a valid pack from all baselines', async () => {
   assert.doesNotThrow(() => validateRulePack(pack));
   const review = pack.rules.filter(r => r.kind === 'review');
   const runtime = pack.rules.filter(r => r.kind === 'runtime');
-  assert.strictEqual(review.length, 60, '60 review rules from the three baselines');
+  assert.strictEqual(review.length, 63, '63 review rules from the three baselines');
   assert.ok(runtime.length >= 10, 'runtime detection rules present');
 });
 

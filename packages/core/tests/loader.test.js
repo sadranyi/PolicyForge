@@ -24,13 +24,13 @@ test('all shipped baselines load and validate', async () => {
   }
 });
 
-test('shipped baselines total 60 rules', async () => {
+test('shipped baselines total 63 rules', async () => {
   let total = 0;
   for (const id of BASELINE_IDS) {
     const baseline = await loadBaseline(id);
     total += baseline.rules.length;
   }
-  assert.strictEqual(total, 60);
+  assert.strictEqual(total, 63);
 });
 
 test('every rule in every baseline cites a declared source', async () => {
