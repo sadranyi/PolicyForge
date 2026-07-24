@@ -6,11 +6,12 @@
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/loader.test.js tests/reviewer.test.js tests/generators.test.js tests/rulepack.test.js"
+    "test": "node --test tests/loader.test.js tests/reviewer.test.js tests/generators.test.js tests/rulepack.test.js tests/pdf.test.js"
   },
   "dependencies": {
-    "yaml": "^2.5.0",
-    "mammoth": "^1.8.0"
+    "mammoth": "^1.8.0",
+    "pdfjs-dist": "^4.2.67",
+    "yaml": "^2.5.0"
   },
   "engines": {
     "node": ">=18"

@@ -53,15 +53,20 @@ async function extractText(input) {
       };
     }
 
-    case '.pdf':
-      throw new Error(
-        'PDF extraction is not supported in v0.1. Please convert your policy ' +
-        'to Markdown or .docx and try again. (PDF text extraction quality is ' +
-        'inconsistent enough that we don\'t want to silently mis-review your policy.)'
-      );
+    case '.pdf': {
+      const { extractPdfText } = require('./pdf');
+      const pdf = await extractPdfText(buffer);
+      return {
+        text: pdf.text,
+        format: 'pdf',
+        source: name,
+        pages: pdf.pages,
+        warnings: pdf.warnings || []
+      };
+    }
 
     default:
-      throw new Error(`Unsupported file extension: "${ext}". Supported: .md, .markdown, .txt, .docx`);
+      throw new Error(`Unsupported file extension: "${ext}". Supported: .md, .markdown, .txt, .docx, .pdf`);
   }
 }
 
