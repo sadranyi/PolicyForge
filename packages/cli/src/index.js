@@ -84,6 +84,7 @@ Usage:
   policyforge scan (--text <s> | --file <f> | -) [--json] [--redact]
   policyforge gate            # Claude Code hook adapter (stdin JSON -> decision)
   policyforge hooks [--install]  # print/install Claude Code hook settings
+  policyforge dlp-export --target (purview|netskope|zscaler|generic) [--output <f>]
 
 Subcommands:
   ${C.bold('wizard')}     Interactive flow — recommended for first-time use
@@ -93,6 +94,7 @@ Subcommands:
   ${C.bold('scan')}       Scan text/stdin for policy violations (exit 1 on block)
   ${C.bold('gate')}       Claude Code PreToolUse/UserPromptSubmit hook adapter
   ${C.bold('hooks')}      Print or install the Claude Code hook settings for the gate adapter
+  ${C.bold('dlp-export')} Export runtime rules as a Purview/Netskope/Zscaler/generic DLP pack
 
 Common options:
   --policy <file>         Path to policy document (.md, .markdown, .txt, .docx)
@@ -163,11 +165,37 @@ async function cmdReview(args) {
   fs.writeFileSync(path.join(outputDir, 'review.md'), reviewDoc.markdown);
   fs.writeFileSync(path.join(outputDir, 'review.json'), JSON.stringify(review, null, 2));
 
+  // Optional operational/audit emitters (SARIF for code scanning, OCSF for SIEM).
+  if (args.sarif || args.emit === 'all') {
+    fs.writeFileSync(path.join(outputDir, 'review.sarif'),
+      JSON.stringify(core.toSarif(review, { policySource: path.basename(args.policy) }), null, 2));
+  }
+  if (args.ocsf || args.emit === 'all') {
+    fs.writeFileSync(path.join(outputDir, 'review.ocsf.json'),
+      JSON.stringify(core.toOcsf(review, { time: Date.parse(review.reviewed_at) || 0, org: args['org-name'] }), null, 2));
+  }
+  // Optional drift gate: compare against a prior snapshot; exit 1 on regression.
+  let driftExit = 0;
+  if (args['drift-against']) {
+    const prior = JSON.parse(fs.readFileSync(args['drift-against'], 'utf8'));
+    const drift = core.diffSnapshots(prior, review);
+    fs.writeFileSync(path.join(outputDir, 'drift.json'), JSON.stringify(drift, null, 2));
+    console.log('');
+    console.log(C.bold('Drift vs prior snapshot: ') +
+      (drift.regressed ? C.red(`REGRESSED (+${drift.summary.new_gaps} new gaps)`) :
+       drift.drifted ? C.yel('changed (no regression)') : C.grn('no change')));
+    if (drift.regressed && args['fail-on-drift']) driftExit = 1;
+  }
+  // Always write a fresh snapshot for future drift comparisons.
+  fs.writeFileSync(path.join(outputDir, 'snapshot.json'), JSON.stringify(core.snapshotReview(review), null, 2));
+
   console.log('');
   console.log(C.bold('Output written:'));
   console.log(`  ${path.join(outputDir, 'review.md')}`);
   console.log(`  ${path.join(outputDir, 'review.json')}`);
+  console.log(`  ${path.join(outputDir, 'snapshot.json')}`);
   console.log('');
+  if (driftExit) process.exit(driftExit);
 }
 
 // ============================================================
@@ -421,6 +449,22 @@ function printSeverityLine(label, counts, colorFn) {
 
 // ============================================================
 // MAIN
+
+// ============================================================
+// DLP-EXPORT subcommand — browser-bridge pattern packs
+// ============================================================
+async function cmdDlpExport(args) {
+  const target = args.target || 'generic';
+  const pack = await core.compileRulePack();
+  const out = core.toDlpPack(pack, target);
+  const outPath = args.output || `policyforge-dlp-${target}.json`;
+  fs.writeFileSync(outPath, JSON.stringify(out, null, 2));
+  console.log('');
+  console.log(C.bold(`DLP pack (${target}) written: `) + outPath);
+  console.log(C.dim('  Import into your DLP/CASB so browser-layer enforcement derives from the same policy.'));
+  console.log('');
+}
+
 // ============================================================
 async function main() {
   const args = parseArgs(process.argv.slice(2));
@@ -439,6 +483,7 @@ async function main() {
     else if (subcommand === 'scan') await cmdScan(args, C);
     else if (subcommand === 'gate') await cmdGate();
     else if (subcommand === 'hooks') cmdHooks(args, C);
+    else if (subcommand === 'dlp-export') await cmdDlpExport(args);
     else {
       console.error(C.red(`Unknown subcommand: ${subcommand}`));
       printUsage();
