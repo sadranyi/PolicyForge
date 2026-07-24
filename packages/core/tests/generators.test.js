@@ -95,3 +95,28 @@ test('core.run one-shot pipeline returns review and toolkit', async () => {
   assert.ok(review.findings.length > 0);
   assert.ok(Object.keys(toolkit).length > 0);
 });
+
+test('generated content guard is branded with the org name, not a hardcoded org', async () => {
+  const { toolkit } = await runPipeline(
+    'ai-usage-policy',
+    path.join(EXAMPLES, 'sample-policy.md')
+  );
+  const guard = toolkit['scripts/ai-content-guard.js'];
+  assert.ok(guard, 'content guard script present');
+  assert.ok(guard.includes('Test Org AI Content Guard'), 'uses stack.org_name for branding');
+  assert.ok(!guard.includes('Mekorma'), 'no leftover hardcoded org name');
+  assert.ok(!guard.includes('{{ORG_NAME}}'), 'no unsubstituted placeholder');
+});
+
+test('content guard falls back to a generic org name when none is given', async () => {
+  const policyText = fs.readFileSync(path.join(EXAMPLES, 'sample-policy.md'), 'utf8');
+  const baseline = await core.loadBaseline('ai-usage-policy');
+  const review = core.reviewPolicy(policyText, baseline);
+  const toolkit = core.generateToolkit({
+    review, baseline,
+    stack: { languages: ['typescript'], ci: 'github-actions' }
+  });
+  const guard = toolkit['scripts/ai-content-guard.js'];
+  assert.ok(guard.includes('Your Organization AI Content Guard'));
+  assert.ok(!guard.includes('{{ORG_NAME}}'));
+});

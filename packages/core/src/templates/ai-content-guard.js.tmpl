@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Mekorma AI Content Guard
+ * {{ORG_NAME}} AI Content Guard
  * -------------------------
  * Pre-commit / CI hook that scans staged files for AI-policy violations.
  * Runs on Node 18+ (no external dependencies — uses Node built-ins only).
@@ -161,8 +161,8 @@ const RULES = [
   {
     id: "CUSTDATA-007",
     severity: "medium",
-    description: "Mekorma customer / partner identifier pattern",
-    // Adjust pattern to match Mekorma's actual customer ID format if known.
+    description: "{{ORG_NAME}} customer / partner identifier pattern",
+    // Adjust pattern to match {{ORG_NAME}}'s actual customer ID format if known.
     // Placeholder: matches strings like CUST-12345, CID:67890 in code.
     pattern: /\b(?:CUST|CID|CUSTOMER|TENANT)[-_:]\d{4,}\b/g,
     allowExpression: /\b(?:CUST|CID|CUSTOMER|TENANT)[-_:]0{4,}\b/,
@@ -348,7 +348,7 @@ function printFindings(findings) {
   }
 
   console.log(colorize("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", COLORS.gray));
-  console.log(colorize(" Mekorma AI Content Guard — findings", COLORS.bold));
+  console.log(colorize(" {{ORG_NAME}} AI Content Guard — findings", COLORS.bold));
   console.log(colorize("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n", COLORS.gray));
 
   // Group by file

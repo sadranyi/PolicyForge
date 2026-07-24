@@ -59,7 +59,7 @@ function generateAiUsageFiles({ review, baseline, stack }) {
   files['.github/copilot-instructions.md'] = renderCopilotRedirector(stack);
 
   // 4. The content guard script (Node, no deps)
-  files['scripts/ai-content-guard.js'] = renderContentGuard();
+  files['scripts/ai-content-guard.js'] = renderContentGuard({ stack });
 
   // 5. Pre-commit hooks — depends on stack
   if (stack.languages.includes('typescript') || stack.languages.includes('javascript') || stack.languages.includes('mixed')) {
@@ -383,13 +383,14 @@ When Copilot generates a substantial portion of a change, include \`[AI-Heavy]\`
 // ============================================================
 // Content guard renderer (loaded from template)
 // ============================================================
-function renderContentGuard() {
+function renderContentGuard({ stack } = {}) {
+  const orgName = stack?.org_name || 'Your Organization';
   const templatePath = path.join(__dirname, '..', 'templates', 'ai-content-guard.js.tmpl');
-  if (fs.existsSync(templatePath)) {
-    return fs.readFileSync(templatePath, 'utf8');
-  }
-  // Fallback: inline template if file isn't available (e.g. running from a bundle)
-  return CONTENT_GUARD_INLINE;
+  const raw = fs.existsSync(templatePath)
+    ? fs.readFileSync(templatePath, 'utf8')
+    // Fallback: inline template if file isn't available (e.g. running from a bundle)
+    : CONTENT_GUARD_INLINE;
+  return raw.replace(/\{\{ORG_NAME\}\}/g, orgName);
 }
 
 // ============================================================

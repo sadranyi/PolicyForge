@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-const core = require('@policyforge/core');
+const core = require('policyforge-core');
 
 // ============================================================
 // Argument parsing — minimal, dependency-free
@@ -276,8 +276,37 @@ async function cmdWizard() {
   console.log(C.dim('Nothing leaves your machine. The CLI does the work locally.'));
   console.log('');
 
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const ask = (q) => new Promise(res => rl.question(q, a => res(a.trim())));
+  // Lossless prompter: buffers incoming lines so answers are never dropped
+  // when stdin is piped (readline.question loses buffered lines between
+  // sequential questions on non-TTY stdin). Behaves identically at a TTY.
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: process.stdin.isTTY === true
+  });
+  const lineQueue = [];
+  let lineWaiter = null;
+  let stdinClosed = false;
+  rl.on('line', (l) => {
+    if (lineWaiter) { const w = lineWaiter; lineWaiter = null; w(l); }
+    else lineQueue.push(l);
+  });
+  rl.on('close', () => {
+    stdinClosed = true;
+    if (lineWaiter) { const w = lineWaiter; lineWaiter = null; w(null); }
+  });
+  const ask = async (q) => {
+    process.stdout.write(q);
+    let line;
+    if (lineQueue.length > 0) line = lineQueue.shift();
+    else if (stdinClosed) line = null;
+    else line = await new Promise(res => { lineWaiter = res; });
+    if (line === null) {
+      console.error('\n' + C.red('Error:') + ' input ended before the wizard finished.');
+      process.exit(2);
+    }
+    return line.trim();
+  };
 
   // Step 1: policy file
   let policyPath;
