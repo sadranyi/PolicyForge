@@ -10,9 +10,11 @@
     "packages/web"
   ],
   "scripts": {
-    "test": "node --test packages/core/tests/",
+    "test": "node --test packages/core/tests/loader.test.js packages/core/tests/reviewer.test.js packages/core/tests/generators.test.js",
     "wizard": "node packages/cli/src/index.js wizard",
     "review:example": "node packages/cli/src/index.js review --policy examples/sample-policy.md --output examples/output",
-    "generate:example": "node packages/cli/src/index.js generate --policy examples/sample-policy.md --stack typescript --ci github-actions --org-name 'Acme Corp' --owner-email security@acme.example --output examples/output"
+    "generate:example": "node packages/cli/src/index.js generate --policy examples/sample-policy.md --stack typescript --ci github-actions --org-name 'Acme Corp' --owner-email security@acme.example --output examples/output",
+    "test:baselines": "node scripts/test-baselines.js",
+    "test:e2e": "node scripts/e2e-test.js"
   }
 }

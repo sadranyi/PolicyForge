@@ -1,12 +1,12 @@
 {
   "name": "@policyforge/core",
   "version": "0.1.0",
-  "description": "PolicyForge core engine — extraction, review, and toolkit generation",
+  "description": "PolicyForge core engine \u2014 extraction, review, and toolkit generation",
   "license": "Apache-2.0",
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/"
+    "test": "node --test tests/loader.test.js tests/reviewer.test.js tests/generators.test.js"
   },
   "dependencies": {
     "yaml": "^2.5.0",
@@ -14,5 +14,29 @@
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sadranyi/PolicyForge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sadranyi/PolicyForge/issues"
+  },
+  "homepage": "https://github.com/sadranyi/PolicyForge#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "security",
+    "policy",
+    "compliance",
+    "ai-governance",
+    "nist",
+    "owasp",
+    "devsecops"
+  ],
+  "files": [
+    "src/",
+    "baseline-data/"
+  ]
 }

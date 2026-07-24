@@ -9,9 +9,32 @@
   },
   "main": "src/index.js",
   "dependencies": {
-    "@policyforge/core": "file:../core"
+    "@policyforge/core": "^0.1.0"
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sadranyi/PolicyForge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sadranyi/PolicyForge/issues"
+  },
+  "homepage": "https://github.com/sadranyi/PolicyForge#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "security",
+    "policy",
+    "compliance",
+    "ai-governance",
+    "nist",
+    "owasp",
+    "devsecops"
+  ],
+  "files": [
+    "src/"
+  ]
 }
