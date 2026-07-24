@@ -6,7 +6,7 @@
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/loader.test.js tests/reviewer.test.js tests/generators.test.js"
+    "test": "node --test tests/loader.test.js tests/reviewer.test.js tests/generators.test.js tests/rulepack.test.js"
   },
   "dependencies": {
     "yaml": "^2.5.0",

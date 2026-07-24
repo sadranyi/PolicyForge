@@ -14,6 +14,9 @@ const { extractText } = require('./extractors/extract');
 const { reviewPolicy } = require('./reviewers/review');
 const { generateToolkit } = require('./generators/toolkit');
 const { generateReviewDocument } = require('./generators/review-document');
+const { compileRulePack } = require('./rulepack/compile');
+const { scanText } = require('./rulepack/scan');
+const { validateRulePack } = require('./rulepack/rulepack');
 
 module.exports = {
   loadBaseline,
@@ -21,6 +24,9 @@ module.exports = {
   reviewPolicy,
   generateToolkit,
   generateReviewDocument,
+  compileRulePack,
+  scanText,
+  validateRulePack,
 
   /**
    * One-shot pipeline: text → review → toolkit
