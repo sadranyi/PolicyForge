@@ -40,7 +40,17 @@ function cmdHooks(args, C) {
       try {
         const existing = JSON.parse(fs.readFileSync(target, 'utf8'));
         merged = Object.assign({}, existing);
-        merged.hooks = Object.assign({}, existing.hooks, cfg.hooks);
+        // Merge per-event hook ARRAYS instead of replacing them, so existing
+        // PreToolUse / UserPromptSubmit hooks survive. Skip if our command is
+        // already wired to keep the operation idempotent.
+        const existingHooks = (existing.hooks && typeof existing.hooks === 'object') ? existing.hooks : {};
+        const mergedHooks = Object.assign({}, existingHooks);
+        for (const [event, entries] of Object.entries(cfg.hooks)) {
+          const prior = Array.isArray(existingHooks[event]) ? existingHooks[event] : [];
+          const already = JSON.stringify(prior).includes('policyforge gate');
+          mergedHooks[event] = already ? prior : prior.concat(entries);
+        }
+        merged.hooks = mergedHooks;
       } catch { /* overwrite if unparseable */ }
     }
     fs.writeFileSync(target, JSON.stringify(merged, null, 2) + '\n');

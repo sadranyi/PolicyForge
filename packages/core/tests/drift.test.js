@@ -63,3 +63,17 @@ test('snapshotReview strips volatile fields', async () => {
     assert.ok(!('positive_matches' in f), 'no offsets/match text retained');
   }
 });
+
+test('a baseline-added unsatisfied rule is not a regression', async () => {
+  const before = { snapshot_version: '1.0', baseline: { id: 'x', version: '1' }, recommendation: 'ok',
+    findings: [{ rule_id: 'a', severity: 'high', status: 'satisfied', citations: [] }] };
+  const after = { snapshot_version: '1.0', baseline: { id: 'x', version: '2' }, recommendation: 'ok',
+    findings: [
+      { rule_id: 'a', severity: 'high', status: 'satisfied', citations: [] },
+      { rule_id: 'b', severity: 'high', status: 'gap', citations: [] }, // newly added rule, unsatisfied
+    ] };
+  const d = diffSnapshots(before, after);
+  assert.strictEqual(d.summary.rules_added, 1);
+  assert.strictEqual(d.summary.new_gaps, 0);
+  assert.strictEqual(d.regressed, false);
+});

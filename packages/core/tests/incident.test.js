@@ -73,7 +73,7 @@ test('GDPR + NIS2 + SEC + HIPAA all fire for a multi-regime incident', () => {
 });
 
 test('GDPR 72h clock is exact from awareness', () => {
-  const record = { timestamps: { awareAt: '2026-07-20T10:00:00Z' }, orgContext: { gdprApplies: true } };
+  const record = { timestamps: { awareAt: '2026-07-20T10:00:00Z' }, orgContext: { gdprApplies: true }, signals: { dataClasses: ['PII'], recordCount: 10 } };
   const dls = computeDeadlines(record, { now: '2026-07-20T11:00:00Z' });
   const art33 = dls.find(d => d.regulation === 'GDPR_ART33');
   assert.strictEqual(art33.dueAt, '2026-07-23T10:00:00.000Z');
@@ -150,4 +150,42 @@ test('incidentToOcsf emits Incident Finding class 2004 with deterministic time',
 test('incident module is exported from core', () => {
   assert.strictEqual(typeof core.incident.createIncident, 'function');
   assert.strictEqual(typeof core.incident.deadlineBoard, 'function');
+});
+
+// ---------- review-driven fixes (v0.2.0 counsel) ----------
+test('HIPAA does not fire for a no-data, not-a-breach covered entity', () => {
+  const record = {
+    timestamps: { discoveredAt: '2026-07-20T10:00:00Z' },
+    orgContext: { hipaaRole: 'COVERED_ENTITY' },
+    humanDeterminations: { hipaaIsBreach: 'NOT_BREACH' },
+    signals: { dataClasses: ['NONE'], recordCount: 0 },
+  };
+  const dls = computeDeadlines(record, { now: '2026-07-20T12:00:00Z' });
+  assert.ok(!dls.some(d => d.regulation.startsWith('HIPAA')));
+});
+
+test('GDPR does not fire when risk is affirmatively NO_RISK', () => {
+  const record = {
+    timestamps: { awareAt: '2026-07-20T10:00:00Z' },
+    orgContext: { gdprApplies: true },
+    humanDeterminations: { gdprRisk: 'NO_RISK' },
+    signals: { dataClasses: ['PII'], recordCount: 5 },
+  };
+  const dls = computeDeadlines(record, { now: '2026-07-20T12:00:00Z' });
+  assert.ok(!dls.some(d => d.regulation.startsWith('GDPR')));
+});
+
+test('NIS2 final report is one month AFTER the 72h notification', () => {
+  const record = { timestamps: { awareAt: '2026-07-20T10:00:00Z' }, orgContext: { nis2Entity: 'ESSENTIAL' } };
+  const dls = computeDeadlines(record, { now: '2026-07-20T12:00:00Z' });
+  const fin = dls.find(d => d.regulation === 'NIS2_FINAL');
+  // notification = awareness + 72h = 2026-07-23T10:00Z; +1 month = 2026-08-23T10:00Z
+  assert.strictEqual(fin.dueAt, '2026-08-23T10:00:00.000Z');
+});
+
+test('createIncident does not mutate the caller intake (idempotent timeline)', () => {
+  const intake = { title: 'x', timestamps: { detectedAt: '2026-07-20T09:00:00Z' }, orgContext: {}, signals: {} };
+  core.incident.createIncident(intake, { now: '2026-07-20T12:00:00Z' });
+  core.incident.createIncident(intake, { now: '2026-07-20T12:00:00Z' });
+  assert.strictEqual(intake.timeline, undefined); // never populated on the caller's object
 });

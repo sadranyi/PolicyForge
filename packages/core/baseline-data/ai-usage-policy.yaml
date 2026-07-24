@@ -449,8 +449,8 @@ rules:
       - nist-ai-rmf
     evidence_patterns:
       positive:
-        - 'MCP server.{0,40}(allowlist|allow list|approved|whitelist|catalog|registry)'
-        - 'approved.{0,30}MCP'
+        - 'MCP server.{0,40}(allowlist|allow list|\\bapproved|whitelist|catalog|registry)'
+        - '\\bapproved.{0,30}MCP'
         - '(allowlist|allowed list).{0,30}(MCP|connector|agent server)'
     suggested_resolution: |
       Require that agents connect only to MCP servers on a maintained approved

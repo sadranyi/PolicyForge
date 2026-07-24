@@ -44,12 +44,12 @@ test('toOcsf emits one Compliance Finding per rule with pass/fail status', async
   assert.strictEqual(events.length, review.findings.length);
   for (const e of events) {
     assert.strictEqual(e.class_uid, 2003);
-    assert.ok(['Pass', 'Fail'].includes(e.status));
+    assert.ok(['Pass', 'Fail'].includes(e.compliance.status));
     assert.ok(Array.isArray(e.compliance.standards));
     assert.strictEqual(e.time, 0); // deterministic
   }
   // satisfied -> Pass
-  const passIds = events.filter(e => e.status === 'Pass').map(e => e.finding_info.uid);
+  const passIds = events.filter(e => e.compliance.status === 'Pass').map(e => e.finding_info.uid);
   const satisfied = review.findings.filter(f => f.status === 'satisfied').map(f => f.rule_id);
   assert.deepStrictEqual(passIds.sort(), satisfied.sort());
 });
@@ -77,4 +77,22 @@ test('emitters are exported from core', () => {
   assert.strictEqual(typeof core.toSarif, 'function');
   assert.strictEqual(typeof core.toOcsf, 'function');
   assert.strictEqual(typeof core.toSigma, 'function');
+});
+
+test('OCSF top-level status is lifecycle (New), pass/fail lives in compliance', async () => {
+  const review = await sampleReview();
+  const events = toOcsf(review);
+  for (const e of events) {
+    assert.strictEqual(e.status, 'New');
+    assert.strictEqual(e.status_id, 1);
+    assert.ok(['Pass', 'Fail'].includes(e.compliance.status));
+  }
+});
+
+test('Sigma flags lookaround patterns for RE2 backends', async () => {
+  const pack = await core.compileRulePack();
+  const sigma = toSigma(pack);
+  const openai = sigma.find(s => s.id === 'policyforge-rt-secret-002'); // has (?!ant-)
+  assert.ok(openai.custom && openai.custom.requires_pcre === true);
+  assert.match(openai.description, /lookaround/);
 });

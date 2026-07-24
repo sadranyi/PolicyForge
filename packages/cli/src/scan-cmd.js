@@ -92,7 +92,11 @@ async function cmdGate() {
     ? `PolicyForge blocked: ${result.findings.map(f => `${f.rule_id} (${f.description})`).join('; ')}`
     : '';
 
-  if (result.verdict === 'block') {
+  // Hard enforcement denies on block OR redact — a redact-action finding means
+  // regulated PII (e.g. an SSN) is present, which must not leave via a tool call
+  // or prompt just because it is "redactable" rather than "blockable".
+  const denied = result.verdict === 'block' || result.verdict === 'redact';
+  if (denied) {
     // PreToolUse: deny the tool call. UserPromptSubmit: block the prompt.
     if (eventName === 'UserPromptSubmit') {
       out({ decision: 'block', reason });
@@ -117,10 +121,18 @@ function extractHookText(event) {
   const ti = event.tool_input || event.toolInput;
   if (ti) {
     if (typeof ti === 'string') return ti;
-    // Concatenate string-valued fields (command, content, text, code, etc.)
-    return Object.values(ti).filter(v => typeof v === 'string').join('\n');
+    // Recursively collect ALL string values, including nested arrays/objects
+    // (e.g. MultiEdit's edits[].new_string), so structured payloads are covered.
+    return collectStrings(ti).join('\n');
   }
   return '';
+}
+
+function collectStrings(v, out = []) {
+  if (typeof v === 'string') out.push(v);
+  else if (Array.isArray(v)) for (const x of v) collectStrings(x, out);
+  else if (v && typeof v === 'object') for (const x of Object.values(v)) collectStrings(x, out);
+  return out;
 }
 
 function out(obj) { process.stdout.write(JSON.stringify(obj) + '\n'); }

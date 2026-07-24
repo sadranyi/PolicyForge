@@ -146,6 +146,9 @@ async function cmdReview(args) {
   process.stdout.write(C.dim('Extracting text... '));
   const extracted = await core.extractText(args.policy);
   console.log(C.grn('done'));
+  for (const w of extracted.warnings || []) {
+    console.log(C.yel('  Warning: ') + (w.message || w.code || String(w)));
+  }
 
   process.stdout.write(C.dim('Loading baseline... '));
   const baseline = await core.loadBaseline(args.baseline || 'ai-usage-policy');
@@ -215,6 +218,9 @@ async function cmdGenerate(args) {
   process.stdout.write(C.dim('Extracting text... '));
   const extracted = await core.extractText(args.policy);
   console.log(C.grn('done'));
+  for (const w of extracted.warnings || []) {
+    console.log(C.yel('  Warning: ') + (w.message || w.code || String(w)));
+  }
 
   process.stdout.write(C.dim('Loading baseline... '));
   const baseline = await core.loadBaseline(args.baseline || 'ai-usage-policy');

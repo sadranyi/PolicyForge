@@ -77,15 +77,23 @@ async function callTool(name, args) {
     return textResult(summarizeScan(result));
   }
   if (name === 'check_tool_call') {
-    const argText = JSON.stringify(args.arguments || {});
+    // Scan the string-valued arguments recursively (nested arrays/objects too),
+    // not just a top-level JSON.stringify, so structured tool inputs are covered.
+    const argText = collectStrings(args.arguments || {}).join('\n');
     const result = core.scanText(argText, pack, { context: 'tool_call' });
-    const allowed = result.verdict !== 'block';
+    // Deny on block OR redact: sending regulated PII (redact action) out through
+    // a tool call is itself a violation, so the gate must not fail open on it.
+    const denied = result.verdict === 'block' || result.verdict === 'redact';
+    const allowed = !denied;
     return textResult(JSON.stringify({
       allowed, verdict: result.verdict,
-      reason: allowed ? 'No blocking policy violation detected.' :
-        'Blocked: ' + result.findings.map(f => `${f.rule_id} (${f.description}) [${f.framework_citations.join(', ')}]`).join('; '),
+      reason: denied
+        ? 'Denied: ' + result.findings.map(f => `${f.rule_id} (${f.description}) [${f.framework_citations.join(', ')}]`).join('; ')
+        : (result.findings.length
+            ? 'Allowed with warnings: ' + result.findings.map(f => f.rule_id).join(', ')
+            : 'No policy violation detected.'),
       findings: result.findings,
-    }, null, 2), !allowed);
+    }, null, 2), denied);
   }
   if (name === 'list_rules') {
     const kind = args.kind || 'all';
@@ -110,6 +118,14 @@ function summarizeScan(result) {
 
 function textResult(text, isError) {
   return { content: [{ type: 'text', text }], isError: !!isError };
+}
+
+// Recursively collect all string values from a nested value (objects/arrays).
+function collectStrings(v, out = []) {
+  if (typeof v === 'string') out.push(v);
+  else if (Array.isArray(v)) for (const x of v) collectStrings(x, out);
+  else if (v && typeof v === 'object') for (const x of Object.values(v)) collectStrings(x, out);
+  return out;
 }
 
 // ---- JSON-RPC plumbing ----

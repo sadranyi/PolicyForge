@@ -64,7 +64,10 @@ function diffSnapshots(before, after) {
 
   for (const [id, fAfter] of afterById) {
     const fBefore = beforeById.get(id);
-    if (!fBefore) { addedRules.push(id); if (fAfter.status !== 'satisfied') newGaps.push(id); continue; }
+    // A rule that only exists in `after` is a baseline addition, not a policy
+    // regression — do NOT count it as a new gap (that would falsely trip the
+    // `regressed` flag when the baseline simply grew).
+    if (!fBefore) { addedRules.push(id); continue; }
     const wasOpen = fBefore.status !== 'satisfied';
     const isOpen = fAfter.status !== 'satisfied';
     if (!wasOpen && isOpen) newGaps.push(id);

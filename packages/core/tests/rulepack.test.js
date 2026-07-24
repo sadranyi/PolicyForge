@@ -110,3 +110,17 @@ test('scanText is exported from core', () => {
   assert.strictEqual(typeof core.scanText, 'function');
   assert.strictEqual(typeof core.compileRulePack, 'function');
 });
+
+test('credit-card detector catches Amex (15) and Diners (14), not just 16-digit', async () => {
+  const pack = await compileRulePack();
+  assert.ok(scanText('amex 3782 822463 10005', pack).findings.some(f => f.rule_id === 'RT-PII-002'));
+  assert.ok(scanText('visa 4111 1111 1111 1111', pack).findings.some(f => f.rule_id === 'RT-PII-002'));
+});
+
+test('redaction masks block-action secrets, not just redact-action PII', async () => {
+  const pack = await compileRulePack();
+  const key = 'sk-ant-api03-' + 'A'.repeat(45);
+  const res = scanText(`key ${key} and ssn 123-45-6789`, pack, { redact: true });
+  assert.ok(!res.redacted_text.includes(key), 'secret is masked');
+  assert.ok(!res.redacted_text.includes('123-45-6789'), 'PII is masked');
+});

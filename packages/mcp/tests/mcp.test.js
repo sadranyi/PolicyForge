@@ -76,3 +76,15 @@ test('server speaks JSON-RPC over real stdio', async () => {
   // exactly two responses (the notification got none)
   assert.strictEqual(responses.filter(r => r.id !== undefined).length, 2);
 });
+
+test('check_tool_call denies regulated PII (redact verdict), not just secrets', async () => {
+  const r = await handleRequest({ id: 7, method: 'tools/call', params: { name: 'check_tool_call', arguments: { tool_name: 'post', arguments: { body: 'ssn 123-45-6789' } } } });
+  const payload = JSON.parse(r.content[0].text);
+  assert.strictEqual(payload.allowed, false);
+  assert.strictEqual(r.isError, true);
+});
+
+test('check_tool_call scans nested argument structures', async () => {
+  const r = await handleRequest({ id: 8, method: 'tools/call', params: { name: 'check_tool_call', arguments: { tool_name: 'x', arguments: { edits: [{ new_string: KEY }] } } } });
+  assert.strictEqual(JSON.parse(r.content[0].text).allowed, false);
+});

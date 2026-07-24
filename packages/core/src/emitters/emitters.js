@@ -138,8 +138,11 @@ function toOcsf(review, opts = {}) {
       time,
       severity_id: OCSF_SEVERITY_ID[sevKey(f.severity)] || 3,
       severity: capitalize(sevKey(f.severity)),
-      status_id: pass ? 1 : 2, // 1 Pass, 2 Fail
-      status: pass ? 'Pass' : 'Fail',
+      // Top-level Finding status is the lifecycle state (1=New); pass/fail is a
+      // compliance concept and lives in the `compliance` object per the OCSF
+      // Compliance Finding profile.
+      status_id: 1,
+      status: 'New',
       message: `${f.title} — ${f.status}`,
       finding_info: {
         title: f.title,
@@ -174,22 +177,31 @@ function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
 function toSigma(pack) {
   if (!pack || !Array.isArray(pack.rules)) throw new Error('toSigma: compiled rule pack required');
   const runtime = pack.rules.filter(r => r.kind === 'runtime');
-  return runtime.map(r => ({
-    title: `PolicyForge: ${r.description}`,
-    id: `policyforge-${r.rule_id.toLowerCase()}`,
-    status: 'experimental',
-    description: `${r.description}. Maps to ${r.framework_citations.join(', ')}.`,
-    references: ['https://github.com/sadranyi/PolicyForge'],
-    tags: r.framework_citations.map(c => `policyforge.${c}`),
-    logsource: { product: 'policyforge', service: 'ai-gateway' },
-    detection: {
-      // Sigma 're' modifier: value is a regular expression.
-      selection: { 'message|re': r.patterns },
-      condition: 'selection',
-    },
-    level: mapSigmaLevel(r.severity),
-    falsepositives: ['Legitimate content that structurally resembles the pattern'],
-  }));
+  return runtime.map(r => {
+    // Some patterns use PCRE lookaround, which RE2-based backends (Splunk,
+    // Elastic, pySigma default) do not support. Flag those so the SOC knows to
+    // adapt them rather than silently dropping the rule.
+    const hasLookaround = r.patterns.some(p => /\(\?[=!<]/.test(p));
+    const rule = {
+      title: `PolicyForge: ${r.description}`,
+      id: `policyforge-${r.rule_id.toLowerCase()}`,
+      status: 'experimental',
+      description: `${r.description}. Maps to ${r.framework_citations.join(', ')}.` +
+        (hasLookaround ? ' NOTE: pattern uses regex lookaround; adapt for RE2-based backends (Splunk/Elastic).' : ''),
+      references: ['https://github.com/sadranyi/PolicyForge'],
+      tags: r.framework_citations.map(c => `policyforge.${c}`),
+      logsource: { product: 'policyforge', service: 'ai-gateway' },
+      detection: {
+        // Sigma 're' modifier: value is a regular expression (PCRE).
+        selection: { 'message|re': r.patterns },
+        condition: 'selection',
+      },
+      level: mapSigmaLevel(r.severity),
+      falsepositives: ['Legitimate content that structurally resembles the pattern'],
+    };
+    if (hasLookaround) rule.custom = { requires_pcre: true };
+    return rule;
+  });
 }
 
 function mapSigmaLevel(sev) {

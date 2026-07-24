@@ -68,7 +68,10 @@ function scanText(text, pack, opts = {}) {
           offset: m.index,
           length: m[0].length,
         });
-        if (rule.action === 'redact') {
+        // Mask both redact-action (PII) and block-action (secrets) matches in
+        // the redacted copy — leaving a detected secret verbatim would defeat
+        // the purpose of asking for redaction.
+        if (rule.action === 'redact' || rule.action === 'block') {
           redactSpans.push([m.index, m.index + m[0].length]);
         }
       }

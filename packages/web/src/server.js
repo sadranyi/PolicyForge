@@ -106,7 +106,10 @@ app.post('/api/review', upload.single('policy'), async (req, res, next) => {
       review,
       review_markdown: reviewDoc.markdown,
       file_format: extracted.format,
-      file_name: extracted.source
+      file_name: extracted.source,
+      // Surface extraction warnings (e.g. a scanned/image-only PDF) so the
+      // client can tell the user the review may be incomplete.
+      warnings: extracted.warnings || []
     });
   } catch (err) { next(err); }
 });

@@ -72,8 +72,15 @@ const RUNTIME_RULES = [
   },
   {
     rule_id: 'RT-PII-002', severity: 'high', action: 'redact', category: 'pii',
-    description: 'Credit card number (Luhn-shaped, 13-19 digits)',
-    patterns: ['\\b(?:4\\d{3}|5[1-5]\\d{2}|3[47]\\d{2}|6(?:011|5\\d{2}))[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b'],
+    description: 'Credit card number (Visa/MC/Discover 16, Amex 15, Diners 14)',
+    patterns: [
+      // Visa / Mastercard / Discover — 16 digits, optional separators
+      '\\b(?:4\\d{3}|5[1-5]\\d{2}|6(?:011|5\\d{2}))[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}\\b',
+      // American Express — 15 digits (4-6-5)
+      '\\b3[47]\\d{2}[\\s-]?\\d{6}[\\s-]?\\d{5}\\b',
+      // Diners Club — 14 digits (4-6-4)
+      '\\b3(?:0[0-5]|[68]\\d)\\d[\\s-]?\\d{6}[\\s-]?\\d{4}\\b',
+    ],
     framework_citations: ['eu-ai-act', 'nist-sp-800-53'],
     controls: { 'nist-sp-800-53': ['PT-2', 'SC-28'] },
   },

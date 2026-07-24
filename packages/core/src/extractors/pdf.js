@@ -95,7 +95,16 @@ function reconstructPageText(items) {
   const out = [];
   for (const yKey of sortedYs) {
     const parts = lines.get(yKey).sort((a, b) => a.x - b.x);
-    out.push(parts.map(p => p.str).join('').replace(/\s+/g, ' ').trim());
+    // Join adjacent text items with a space unless the previous item already
+    // ends with whitespace or the next starts with it. Joining with '' merged
+    // "Customer" + "data" into "Customerdata"; a single space preserves word
+    // boundaries, and the final collapse removes any doubled spaces.
+    let line = '';
+    for (const p of parts) {
+      if (line && !/\s$/.test(line) && !/^\s/.test(p.str)) line += ' ';
+      line += p.str;
+    }
+    out.push(line.replace(/\s+/g, ' ').trim());
   }
   return out.filter(Boolean).join('\n');
 }

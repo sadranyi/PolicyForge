@@ -63,7 +63,10 @@ function createIncident(intake = {}, opts = {}) {
     status: intake.status || 'TRIAGE',
     severity: null, severityRationale: [],
     timestamps, signals, orgContext, humanDeterminations,
-    deadlines: [], delays: intake.delays || [], notifications: [], timeline: intake.timeline || [],
+    // Clone caller-supplied arrays so createIncident never mutates the intake
+    // object (calling it twice on one intake used to double-seed the timeline).
+    deadlines: [], delays: Array.isArray(intake.delays) ? intake.delays.slice() : [],
+    notifications: [], timeline: Array.isArray(intake.timeline) ? intake.timeline.slice() : [],
     citations: [],
   };
 

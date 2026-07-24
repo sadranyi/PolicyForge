@@ -17,6 +17,18 @@ const RETRIEVED = '2026-07-24';
 
 function cite(ref, url) { return { ref, url, retrievedDate: RETRIEVED }; }
 
+// A reportable data event: some sensitive data class present (not NONE) OR a
+// positive record count OR confirmed exfiltration. Used to gate breach-
+// notification regimes so an empty/no-data event does not emit deadlines.
+function hasReportableData(r) {
+  const s = r.signals || {};
+  const classes = (s.dataClasses || []).filter(c => c && c !== 'NONE');
+  if (classes.length > 0) return true;
+  if ((s.recordCount || 0) > 0) return true;
+  if (s.confirmedExfiltration === true) return true;
+  return false;
+}
+
 function mkDeadline(d) {
   return Object.assign({
     regulation: null, label: '', stage: null, clockBasis: 'CALENDAR_HOURS',
@@ -56,7 +68,8 @@ const PACKS = [
   // ---------- GDPR Art 33 & 34 ----------
   {
     id: 'GDPR',
-    applies: r => (r.orgContext || {}).gdprApplies === true,
+    applies: r => (r.orgContext || {}).gdprApplies === true &&
+      (r.humanDeterminations || {}).gdprRisk !== 'NO_RISK' && hasReportableData(r),
     buildDeadlines(r, ctx) {
       const start = startTime(r, 'AWARENESS');
       const risk = (r.humanDeterminations || {}).gdprRisk;
@@ -102,14 +115,19 @@ const PACKS = [
           whoToNotify: ['CSIRT / competent authority'],
           citation: cite('NIS2 Art. 23(4)(b)', url),
         }), ctx),
-        finalizeStatus(mkDeadline({
-          regulation: 'NIS2_FINAL', label: 'NIS2 – Final report', stage: 'final',
-          clockBasis: 'CALENDAR_DAYS', amount: 30, unit: 'days', startEvent: 'AWARENESS',
-          startAt: start, dueAt: start ? clock.addMonths(start, 1) : null,
-          whoToNotify: ['CSIRT / competent authority'],
-          citation: cite('NIS2 Art. 23(4)(d) — one month', url),
-          notes: 'One month after the incident notification.',
-        }), ctx),
+finalizeStatus((() => {
+          // Final report is due one month AFTER the incident notification, which
+          // is itself due 72h after awareness.
+          const notifyAt = start ? clock.addHours(start, 72) : null;
+          return mkDeadline({
+            regulation: 'NIS2_FINAL', label: 'NIS2 – Final report', stage: 'final',
+            clockBasis: 'CALENDAR_DAYS', amount: 30, unit: 'days', startEvent: 'NOTIFICATION_SUBMITTED',
+            startAt: notifyAt, dueAt: notifyAt ? clock.addMonths(notifyAt, 1) : null,
+            whoToNotify: ['CSIRT / competent authority'],
+            citation: cite('NIS2 Art. 23(4)(d) — one month', url),
+            notes: 'One month after the incident notification (notification = awareness + 72h).',
+          });
+        })(), ctx),
       ];
     },
   },
@@ -136,7 +154,16 @@ const PACKS = [
   // ---------- HIPAA Breach Notification ----------
   {
     id: 'HIPAA',
-    applies: r => { const role = (r.orgContext || {}).hipaaRole; return role && role !== 'NONE'; },
+    // Gate: covered entity/BA AND not affirmatively determined "not a breach"
+    // AND some PHI/records are actually in scope. Avoids emitting deadlines for
+    // a non-event.
+    applies: r => {
+      const oc = r.orgContext || {};
+      if (!oc.hipaaRole || oc.hipaaRole === 'NONE') return false;
+      const hd = r.humanDeterminations || {};
+      if (hd.hipaaIsBreach === 'NOT_BREACH' || hd.hipaaIsBreach === 'LOW_PROBABILITY') return false;
+      return hasReportableData(r);
+    },
     buildDeadlines(r, ctx) {
       const start = startTime(r, 'DISCOVERY');
       const rc = (r.signals || {}).recordCount || 0;
@@ -176,7 +203,7 @@ const PACKS = [
   // ---------- US State (California, representative) ----------
   {
     id: 'US_STATE_CA',
-    applies: r => ((r.orgContext || {}).jurisdictions || []).includes('US-CA'),
+    applies: r => ((r.orgContext || {}).jurisdictions || []).includes('US-CA') && hasReportableData(r),
     buildDeadlines(r, ctx) {
       const start = startTime(r, 'DISCOVERY');
       const rc = (r.signals || {}).recordCount || 0;
@@ -192,11 +219,12 @@ const PACKS = [
       if (rc >= 500) {
         out.push(finalizeStatus(mkDeadline({
           regulation: 'US_STATE_CA', label: 'California – Attorney General notice (≥500 residents)',
-          stage: 'ag', clockBasis: 'CALENDAR_DAYS', amount: 15, unit: 'days', startEvent: 'DISCOVERY',
-          startAt: start, dueAt: start ? clock.addDays(start, 15) : null,
+          stage: 'ag', clockBasis: 'CALENDAR_DAYS', amount: 30, unit: 'days', startEvent: 'DISCOVERY',
+          startAt: start, dueAt: start ? clock.addDays(start, 30) : null,
           whoToNotify: ['California Attorney General'],
           citation: cite('Cal. Civ. Code §1798.82(f)',
             'https://oag.ca.gov/privacy/databreach/reporting'),
+          notes: 'Submitted to the AG no later than notice to residents (concurrent, ≤30 days).',
         }), ctx));
       }
       return out;
@@ -205,7 +233,7 @@ const PACKS = [
   // ---------- PCI DSS ----------
   {
     id: 'PCI',
-    applies: r => (r.orgContext || {}).processesCardholderData === true,
+    applies: r => (r.orgContext || {}).processesCardholderData === true && hasReportableData(r),
     buildDeadlines(r, ctx) {
       const start = startTime(r, 'DISCOVERY');
       return [finalizeStatus(mkDeadline({

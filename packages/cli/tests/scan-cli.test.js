@@ -109,3 +109,35 @@ function post(port, p, body) {
     req.write(data); req.end();
   });
 }
+
+test('gate denies regulated PII (redact-action) in a tool call, not just secrets', () => {
+  const event = JSON.stringify({ hook_event_name: 'PreToolUse', tool_input: { body: 'customer ssn 123-45-6789' } });
+  const r = runCli(['gate'], event);
+  const decision = JSON.parse(r.out);
+  assert.strictEqual(decision.hookSpecificOutput.permissionDecision, 'deny');
+});
+
+test('gate extracts secrets from nested tool_input (e.g. MultiEdit edits[])', () => {
+  const event = JSON.stringify({ hook_event_name: 'PreToolUse', tool_input: { edits: [{ new_string: `x ${KEY}` }] } });
+  const r = runCli(['gate'], event);
+  const decision = JSON.parse(r.out);
+  assert.strictEqual(decision.hookSpecificOutput.permissionDecision, 'deny');
+});
+
+test('hooks --install preserves existing hooks arrays and is idempotent', () => {
+  const fs = require('node:fs'); const os = require('node:os'); const p = require('node:path');
+  const dir = fs.mkdtempSync(p.join(os.tmpdir(), 'pf-hooks-'));
+  const settings = p.join(dir, '.claude', 'settings.json');
+  fs.mkdirSync(p.dirname(settings), { recursive: true });
+  fs.writeFileSync(settings, JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: 'my-existing-hook' }] }] } }));
+  runCli(['hooks', '--install', '--dir', p.join(dir, '.claude')]);
+  const after = JSON.parse(fs.readFileSync(settings, 'utf8'));
+  const flat = JSON.stringify(after);
+  assert.ok(flat.includes('my-existing-hook'), 'existing hook preserved');
+  assert.ok(flat.includes('policyforge gate'), 'policyforge hook added');
+  // idempotent: running again does not duplicate
+  runCli(['hooks', '--install', '--dir', p.join(dir, '.claude')]);
+  const after2 = JSON.parse(fs.readFileSync(settings, 'utf8'));
+  const count = (JSON.stringify(after2).match(/policyforge gate/g) || []).length;
+  assert.strictEqual(count, 2, 'one gate entry per event, not duplicated'); // PreToolUse + UserPromptSubmit
+});
