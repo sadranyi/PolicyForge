@@ -710,6 +710,9 @@
     background: var(--teal-deep);
     color: var(--cream);
     padding: 3rem var(--gutter);
+    /* Full-bleed band: escape the generic section max-width cap, which
+       otherwise pins this section to the left edge on wide screens. */
+    max-width: none;
     margin: 0;
   }
   .frameworks-inner {
@@ -802,6 +805,9 @@
     border-top: 1px solid var(--rule);
     border-bottom: 1px solid var(--rule);
     padding: clamp(3.5rem, 7vw, 6rem) var(--gutter);
+    /* Full-bleed band: escape the generic section max-width cap, which
+       otherwise pins this section to the left edge on wide screens. */
+    max-width: none;
     margin: 0;
   }
   .try-inner {
