@@ -1,6 +1,6 @@
 {
   "name": "policyforge-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "PolicyForge web frontend \u2014 wraps the core engine in a browser UI",
   "license": "Apache-2.0",
   "type": "commonjs",

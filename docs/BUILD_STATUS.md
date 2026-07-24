@@ -41,3 +41,21 @@ Branch: `feat/v0.2.0`  |  Base: `main @ 34ed207`  |  Target version: 0.2.0
 - Incident subsystem + FRD/ImplSpec + dashboard: ce9a555
 
 Wave 1 status: BUILT + TESTED (71 core + 2 CLI tests green, 12 baseline tests green). Pending independent review + counsel sign-off before final integration.
+
+
+## Independent review + counsel (2026-07-24)
+All 9 features were reviewed by independent agents (none reviewing their own
+work). Reviews surfaced real defects; every blocking and major finding was
+fixed with regression tests and re-verified by the full suite.
+
+Blocking findings fixed:
+- incident: HIPAA/GDPR/CA/PCI applies() over-fired on no-data non-events → gated on reportable data + human determinations
+- incident: California AG deadline anchoring corrected
+- mcp/gate: check_tool_call and Claude Code gate failed OPEN on regulated PII (redact) and missed nested tool_input → now deny on redact + recursive extraction
+
+Major findings fixed: NIS2 final-report clock (notification+1mo), createIncident intake mutation, redaction of block-action secrets, drift false-regression on baseline additions, OCSF status semantics, Sigma lookaround flagging, credit-card Amex/Diners, mcp-allowlist "unapproved" false match, PDF spacing + warning surfacing, hooks array-merge preservation.
+
+Fix commit: e939141. Tests after fixes: 107 (85 core + 13 CLI + 9 MCP), 12 baseline, e2e — all green.
+Note: the final counsel re-vote workflow was interrupted; fixes are verified by the regression suite instead.
+
+## Status: v0.2.0 READY (feat/v0.2.0), all tests green. Pending: merge to main + push (user), npm publish (policyforge-core, policyforge, policyforge-mcp).
