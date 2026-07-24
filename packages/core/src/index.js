@@ -18,6 +18,7 @@ const { compileRulePack } = require('./rulepack/compile');
 const { scanText } = require('./rulepack/scan');
 const { validateRulePack } = require('./rulepack/rulepack');
 const { toSarif, toOcsf, toSigma } = require('./emitters/emitters');
+const { snapshotReview, diffSnapshots } = require('./drift/drift');
 
 module.exports = {
   loadBaseline,
@@ -31,6 +32,8 @@ module.exports = {
   toSarif,
   toOcsf,
   toSigma,
+  snapshotReview,
+  diffSnapshots,
 
   /**
    * One-shot pipeline: text → review → toolkit

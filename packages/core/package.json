@@ -6,7 +6,7 @@
   "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
-    "test": "node --test tests/loader.test.js tests/reviewer.test.js tests/generators.test.js tests/rulepack.test.js tests/pdf.test.js tests/emitters.test.js"
+    "test": "node --test tests/loader.test.js tests/reviewer.test.js tests/generators.test.js tests/rulepack.test.js tests/pdf.test.js tests/emitters.test.js tests/drift.test.js"
   },
   "dependencies": {
     "mammoth": "^1.8.0",
