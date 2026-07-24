@@ -16,6 +16,7 @@ const path = require('path');
 const readline = require('readline');
 
 const core = require('policyforge-core');
+const { cmdIncident } = require('./incident-cmd');
 
 // ============================================================
 // Argument parsing — minimal, dependency-free
@@ -77,11 +78,13 @@ Usage:
   policyforge wizard
   policyforge review --policy <file> [--baseline ai-usage-policy] [--output <dir>]
   policyforge generate --policy <file> --stack <stack> --ci <ci> [--secret-store <store>] [--output <dir>]
+  policyforge incident (--intake <file.json> | --demo) [--now <iso>] [--out <dir>]
 
 Subcommands:
   ${C.bold('wizard')}     Interactive flow — recommended for first-time use
   ${C.bold('review')}     Review a policy and write a report (no toolkit generated)
   ${C.bold('generate')}   Review + generate a tailored toolkit
+  ${C.bold('incident')}   Classify an incident, compute regulatory deadlines, build a dashboard
 
 Common options:
   --policy <file>         Path to policy document (.md, .markdown, .txt, .docx)
@@ -424,6 +427,7 @@ async function main() {
     if (subcommand === 'review') await cmdReview(args);
     else if (subcommand === 'generate') await cmdGenerate(args);
     else if (subcommand === 'wizard') await cmdWizard();
+    else if (subcommand === 'incident') await cmdIncident(args, C);
     else {
       console.error(C.red(`Unknown subcommand: ${subcommand}`));
       printUsage();
