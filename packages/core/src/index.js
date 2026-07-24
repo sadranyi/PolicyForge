@@ -18,6 +18,7 @@ const { compileRulePack } = require('./rulepack/compile');
 const { scanText } = require('./rulepack/scan');
 const { validateRulePack } = require('./rulepack/rulepack');
 const { toSarif, toOcsf, toSigma } = require('./emitters/emitters');
+const { toPurviewSIT, toNetskopeDLP, toZscalerDLP, toGenericDictionary, toDlpPack } = require('./emitters/dlp-packs');
 const { snapshotReview, diffSnapshots } = require('./drift/drift');
 const incident = require('./incident/incident');
 
@@ -33,6 +34,11 @@ module.exports = {
   toSarif,
   toOcsf,
   toSigma,
+  toPurviewSIT,
+  toNetskopeDLP,
+  toZscalerDLP,
+  toGenericDictionary,
+  toDlpPack,
   snapshotReview,
   diffSnapshots,
   incident,
