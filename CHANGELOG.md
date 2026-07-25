@@ -44,3 +44,13 @@ drift detection, PDF ingestion, and a full incident-reporting subsystem.
 ### Build tracking
 See `docs/BUILD_STATUS.md` for the live feature ledger (owner agent, reviewer,
 counsel verdict, tests) so other sessions and agents can pick up mid-stream.
+
+### Security (dependency audit)
+- Resolved all 12 `npm audit` findings (11 high, 1 critical) — now **0 vulnerabilities**.
+  - Critical `tar` chain (via `pdfjs-dist` → optional `canvas` → node-pre-gyp → tar)
+    eliminated by omitting optional deps (`.npmrc` `omit=optional`; canvas is only
+    used for rendering, which PolicyForge never does — text extraction is unaffected).
+  - `brace-expansion`/`minimatch`/`glob` chain (via `archiver`) resolved with a
+    tree-wide `brace-expansion@5.0.8` override (kept `archiver@7` for its stable
+    CommonJS API rather than the breaking ESM `archiver@8`).
+  - Dockerfile installs with `--omit=optional`.

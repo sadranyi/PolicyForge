@@ -2,12 +2,12 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Copy workspace manifest first so dependency install caches well
-COPY package.json package-lock.json* ./
+COPY package.json package-lock.json* .npmrc* ./
 COPY packages/core/package.json ./packages/core/
 COPY packages/web/package.json ./packages/web/
 
 # Skip optional dev workspaces; install only what production needs
-RUN npm install --workspace=policyforge-core --workspace=policyforge-web --omit=dev
+RUN npm install --workspace=policyforge-core --workspace=policyforge-web --omit=dev --omit=optional
 
 # Copy source
 COPY packages/core ./packages/core

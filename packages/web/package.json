@@ -10,7 +10,7 @@
     "dev": "node src/server.js"
   },
   "dependencies": {
-    "archiver": "^7.0.0",
+    "archiver": "^7.0.1",
     "express": "^4.21.0",
     "multer": "^2.0.0",
     "policyforge-core": "file:../core"
