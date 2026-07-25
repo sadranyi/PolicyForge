@@ -12,6 +12,22 @@ npx policyforge <command>
 Run `policyforge --help` for the full flag list. Every command below is
 deterministic and offline.
 
+## Trying it before it is published to npm (clone and run)
+
+Not on npm yet? Reviewers can run it straight from a clone:
+
+```bash
+git clone https://github.com/sadranyi/PolicyForge.git
+cd PolicyForge && npm install
+# expose the commands on your PATH so all examples work verbatim:
+npm link --workspace packages/cli --workspace packages/mcp
+policyforge scan --text "sk-ant-api03-<key>"     # -> Verdict: BLOCK
+```
+
+Or without touching PATH, run the CLI directly: `node packages/cli/src/index.js scan --text "..."`.
+(The `hooks` and MCP examples assume the command is on PATH, so use `npm link` for those.)
+
+
 ---
 
 ## `wizard`
