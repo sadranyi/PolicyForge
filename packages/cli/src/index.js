@@ -81,7 +81,7 @@ Usage:
   policyforge review --policy <file> [--baseline ai-usage-policy] [--output <dir>]
   policyforge generate --policy <file> --stack <stack> --ci <ci> [--secret-store <store>] [--output <dir>]
   policyforge incident (--intake <file.json> | --demo) [--now <iso>] [--out <dir>]
-  policyforge scan (--text <s> | --file <f> | -) [--json] [--redact]
+  policyforge scan (--text <s> | --file <f> | -) [--json] [--redact] [--strict] [--fail-on <level>]
   policyforge gate            # Claude Code hook adapter (stdin JSON -> decision)
   policyforge hooks [--install]  # print/install Claude Code hook settings
   policyforge dlp-export --target (purview|netskope|zscaler|generic) [--output <f>]

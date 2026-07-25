@@ -34,6 +34,29 @@ function readStdin() {
   }
 }
 
+// Verdict severity ranking, used to decide whether a scan "fails" (exit 1).
+const VERDICT_RANK = { allow: 0, flag: 1, coach: 2, redact: 3, block: 4 };
+
+/**
+ * Decide whether a verdict should fail the scan (exit 1), given flags:
+ *   default            -> fail only on `block` (secrets)
+ *   --strict           -> fail on `redact` or higher (also regulated PII)
+ *   --fail-on <level>  -> fail on <level> or higher; level in
+ *                         block|redact|coach|flag|any (any = any match)
+ * The explicit --fail-on wins over --strict if both are given.
+ */
+function isFailing(verdict, args) {
+  const rank = VERDICT_RANK[verdict] != null ? VERDICT_RANK[verdict] : 0;
+  let threshold = VERDICT_RANK.block; // default
+  if (args['fail-on']) {
+    const v = String(args['fail-on']).toLowerCase();
+    threshold = v === 'any' ? 1 : (VERDICT_RANK[v] != null ? VERDICT_RANK[v] : VERDICT_RANK.block);
+  } else if (args.strict) {
+    threshold = VERDICT_RANK.redact;
+  }
+  return rank >= threshold && rank > 0;
+}
+
 async function cmdScan(args, C) {
   let text;
   if (args.text != null) text = String(args.text);
@@ -52,12 +75,15 @@ async function cmdScan(args, C) {
     redact: !!args.redact,
   });
 
+  const failing = isFailing(result.verdict, args);
+
   if (args.json) {
-    process.stdout.write(JSON.stringify(result, null, 2) + '\n');
+    process.stdout.write(JSON.stringify(Object.assign({}, result, { failing }), null, 2) + '\n');
   } else {
     const verdictColor = result.verdict === 'block' ? C.red : result.verdict === 'redact' ? C.yel : result.verdict === 'allow' ? C.grn : C.yel;
     console.log('');
-    console.log('  Verdict: ' + verdictColor(result.verdict.toUpperCase()));
+    console.log('  Verdict: ' + verdictColor(result.verdict.toUpperCase()) +
+      (failing ? C.red('  (fails threshold)') : ''));
     console.log(`  Findings: ${result.findings.length}`);
     for (const f of result.findings.slice(0, 20)) {
       console.log(`   [${f.severity}] ${f.rule_id} — ${f.description}  (${f.framework_citations.join(', ')})`);
@@ -70,7 +96,7 @@ async function cmdScan(args, C) {
     console.log('');
   }
 
-  process.exit(result.verdict === 'block' ? 1 : 0);
+  process.exit(failing ? 1 : 0);
 }
 
 /**

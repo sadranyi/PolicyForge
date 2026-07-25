@@ -32,6 +32,9 @@ drift detection, PDF ingestion, and a full incident-reporting subsystem.
   `list_rules` over JSON-RPC/stdio, dependency-free. [d8dd558]
 - **CLI integration**: `review --emit all` (SARIF+OCSF+snapshot), `--drift-against`
   / `--fail-on-drift`, and `dlp-export`. [924740c]
+- **`scan --strict` / `--fail-on <level>`**: fail the scan on regulated PII
+  (`redact`), not just secrets — makes `scan` a true "no customer data in commits"
+  pre-commit/CI gate.
 
 ### Changed
 - AI-usage baseline grew from 16 to 19 rules (MCP hygiene). Total review rules: 63.

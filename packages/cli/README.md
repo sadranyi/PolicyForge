@@ -92,10 +92,25 @@ Scan text/stdin/a file for policy violations. Exit code `1` on a `block` verdict
 echo "$DIFF" | policyforge scan -                 # from stdin
 policyforge scan --file ./message.txt --json
 policyforge scan --text "paste with a secret" --redact
+policyforge scan --file ./commit.diff --strict    # also fail on customer PII
 ```
 
 Flags: `--text <s>` | `--file <f>` | `-` (stdin), `--json`, `--redact`,
-`--context chat|commit|tool_call`.
+`--context chat|commit|tool_call`, `--strict`, `--fail-on <level>`.
+
+**Failure threshold (exit code).** By default `scan` exits `1` only on a `block`
+verdict (secrets). To also fail on regulated PII (SSNs, cards — `redact`-action
+rules), add `--strict`. For full control use `--fail-on <level>` where level is
+`block` (default) | `redact` (same as `--strict`) | `flag` | `any` (fail on any
+match). This is what makes `scan` usable as a pre-commit hook that blocks
+*customer data*, not just secrets:
+
+```bash
+# pre-commit: block commits containing secrets OR customer PII
+git diff --cached | policyforge scan - --strict || {
+  echo "Commit blocked by PolicyForge"; exit 1;
+}
+```
 
 ## `gate`
 Claude Code hook adapter. Reads a hook event JSON on stdin (PreToolUse /
