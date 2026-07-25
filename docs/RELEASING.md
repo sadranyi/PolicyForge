@@ -18,8 +18,12 @@ Core must be published before (or with) the CLI, since the CLI depends on it by 
 
 ```bash
 npm login                       # one time
+# ORDER MATTERS: core must be on the registry before cli/mcp, which
+# depend on policyforge-core@^0.2.0. Verify each step before the next.
 npm publish --workspace policyforge-core
+npm view policyforge-core@0.2.0 version    # confirm it is live
 npm publish --workspace policyforge
+npm publish --workspace policyforge-mcp
 ```
 
 The web package is not published to npm; it ships via Docker / self-hosting.
@@ -49,3 +53,16 @@ Create a GitHub Release from the tag and paste the highlights from the README's 
 - Add a repo description and topics on GitHub
 - Enable GitHub Pages (source: GitHub Actions)
 - Consider branch protection on `main` requiring CI to pass
+
+
+## Verify both install paths after publishing
+
+```bash
+# npx path
+npx policyforge scan --text "sk-ant-api03-EXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLE12"  # -> BLOCK
+# clone path
+git clone https://github.com/sadranyi/PolicyForge && cd PolicyForge && npm install \
+  && npm link --workspace packages/cli --workspace packages/mcp \
+  && policyforge scan --text "AKIAIOSFODNN7EXAMPLE"  # -> BLOCK
+```
+Run `npm audit` on a fresh `npm i -g policyforge` and confirm 0 vulnerabilities.

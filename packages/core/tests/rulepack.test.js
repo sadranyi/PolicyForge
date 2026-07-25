@@ -124,3 +124,36 @@ test('redaction masks block-action secrets, not just redact-action PII', async (
   assert.ok(!res.redacted_text.includes(key), 'secret is masked');
   assert.ok(!res.redacted_text.includes('123-45-6789'), 'PII is masked');
 });
+
+// ---- pre-test hardening: iconic secret coverage + password FP fix ----
+test('detects the iconic cloud/service secret formats a tester will paste', async () => {
+  const pack = await compileRulePack();
+  const V = (t) => scanText(t, pack).verdict;
+  assert.strictEqual(V('AKIA' + 'IOSFODNN7EXAMPLE'), 'block', 'AWS access key id');
+  assert.strictEqual(V('aws_secret_access_key = wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'), 'block', 'AWS secret');
+  assert.strictEqual(V('AIza' + 'SyD1234567890abcdefghijklmnopqrstuv'), 'block', 'Google API key');
+  assert.strictEqual(V('xoxb' + '-1234567890-abcdefghijklmno'), 'block', 'Slack token');
+  assert.strictEqual(V('sk' + '_live_' + 'abcdefghijklmnop1234567890'), 'block', 'Stripe live key');
+  assert.strictEqual(V('postgres://user:S3cretPass@db.internal:5432/prod'), 'block', 'DB URI creds');
+  assert.strictEqual(V('github' + '_pat_11ABCDEFG0' + 'a'.repeat(60)), 'block', 'fine-grained GitHub PAT');
+});
+
+test('password= heuristic no longer blocks benign placeholders (was a false positive)', async () => {
+  const pack = await compileRulePack();
+  assert.strictEqual(scanText('DB_PASSWORD=changeme_in_production', pack).verdict, 'allow');
+  assert.strictEqual(scanText('PASSWORD=example', pack).verdict, 'allow');
+  // a real-looking assignment still surfaces, but only as flag (not a hard block)
+  assert.strictEqual(scanText('password=Xk9$mQ2vLpZ7', pack).verdict, 'flag');
+});
+
+test('email is redacted but example/test domains are ignored', async () => {
+  const pack = await compileRulePack();
+  assert.ok(scanText('reach jane.roe@gmail.com', pack).findings.some(f => f.rule_id === 'RT-PII-005'));
+  assert.strictEqual(scanText('contact john@example.com', pack).verdict, 'allow');
+});
+
+test('the exact documented "Verify" key blocks (guards the README example)', async () => {
+  const pack = await compileRulePack();
+  const DOC_KEY = 'sk-ant-api03-EXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLE12';
+  assert.strictEqual(scanText(DOC_KEY, pack).verdict, 'block');
+});

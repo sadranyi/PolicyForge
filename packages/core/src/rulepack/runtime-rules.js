@@ -37,14 +37,62 @@ const RUNTIME_RULES = [
   {
     rule_id: 'RT-SECRET-003', severity: 'critical', action: 'block', category: 'secrets',
     description: 'GitHub personal access token',
-    patterns: ['gh[pousr]_[A-Za-z0-9]{36,}'],
+    patterns: ['gh[pousr]_[A-Za-z0-9]{36,}', 'github_pat_[0-9A-Za-z_]{60,}'],
     framework_citations: ['nist-sp-800-53'],
     controls: { 'nist-sp-800-53': ['IA-5'] },
   },
   {
-    rule_id: 'RT-SECRET-004', severity: 'critical', action: 'block', category: 'secrets',
-    description: 'Connection string with embedded password',
-    patterns: ['(?:password|pwd)\\s*=\\s*[^;\'\\s"]{6,}'],
+    // Heuristic only: a `password=...` assignment. Downgraded to `flag` (was a
+    // block) because it false-positive-blocked benign config placeholders like
+    // `DB_PASSWORD=changeme_in_production` and `.env.example`. Placeholder-looking
+    // values (changeme, example, <...>, ${...}, etc.) are excluded, and the
+    // high-confidence real case (a DB URI with inline credentials) is caught by
+    // RT-SECRET-013 at block level instead.
+    rule_id: 'RT-SECRET-004', severity: 'medium', action: 'flag', category: 'secrets',
+    description: 'Possible password in a key=value assignment (heuristic)',
+    patterns: ['(?:password|pwd)\\s*=\\s*["\']?(?!(?:changeme|change_me|changethis|password|passwd|example|placeholder|redacted|your[_-]?password|yourpassword|xxx|<|\\$\\{|sample|dummy|todo))[^;\'\\s"]{8,}'],
+    framework_citations: ['nist-sp-800-53'],
+    controls: { 'nist-sp-800-53': ['IA-5', 'SC-28'] },
+  },
+  {
+    rule_id: 'RT-SECRET-007', severity: 'critical', action: 'block', category: 'secrets',
+    description: 'AWS access key ID',
+    patterns: ['\\b(?:AKIA|ASIA|AIDA|AROA)[0-9A-Z]{16}\\b'],
+    framework_citations: ['owasp-llm-top10', 'nist-sp-800-53'],
+    controls: { 'nist-sp-800-53': ['IA-5', 'SC-28'], 'owasp-llm-top10': ['LLM06'] },
+  },
+  {
+    rule_id: 'RT-SECRET-008', severity: 'critical', action: 'block', category: 'secrets',
+    description: 'AWS secret access key (in an aws_secret context)',
+    patterns: ['aws_secret_access_key\\s*[=:]\\s*["\']?[A-Za-z0-9/+]{40}'],
+    framework_citations: ['owasp-llm-top10', 'nist-sp-800-53'],
+    controls: { 'nist-sp-800-53': ['IA-5', 'SC-28'], 'owasp-llm-top10': ['LLM06'] },
+  },
+  {
+    rule_id: 'RT-SECRET-009', severity: 'critical', action: 'block', category: 'secrets',
+    description: 'Google API key',
+    patterns: ['\\bAIza[0-9A-Za-z_-]{35}\\b'],
+    framework_citations: ['owasp-llm-top10', 'nist-sp-800-53'],
+    controls: { 'nist-sp-800-53': ['IA-5'], 'owasp-llm-top10': ['LLM06'] },
+  },
+  {
+    rule_id: 'RT-SECRET-010', severity: 'critical', action: 'block', category: 'secrets',
+    description: 'Slack token',
+    patterns: ['xox[baprs]-[0-9A-Za-z-]{10,}'],
+    framework_citations: ['owasp-llm-top10', 'nist-sp-800-53'],
+    controls: { 'nist-sp-800-53': ['IA-5'], 'owasp-llm-top10': ['LLM06'] },
+  },
+  {
+    rule_id: 'RT-SECRET-011', severity: 'critical', action: 'block', category: 'secrets',
+    description: 'Stripe live secret key',
+    patterns: ['\\b(?:sk|rk)_live_[0-9A-Za-z]{16,}\\b'],
+    framework_citations: ['owasp-llm-top10', 'nist-sp-800-53'],
+    controls: { 'nist-sp-800-53': ['IA-5'], 'owasp-llm-top10': ['LLM06'] },
+  },
+  {
+    rule_id: 'RT-SECRET-013', severity: 'critical', action: 'block', category: 'secrets',
+    description: 'Database connection string with inline credentials',
+    patterns: ['(?:postgres|postgresql|mysql|mongodb|mongodb\\+srv|redis|amqp|rediss)://[^:/\\s]+:[^@/\\s]+@'],
     framework_citations: ['nist-sp-800-53'],
     controls: { 'nist-sp-800-53': ['IA-5', 'SC-28'] },
   },
@@ -97,6 +145,15 @@ const RUNTIME_RULES = [
     patterns: ['(?:phone|tel|mobile|cell)[\\s_]*(?:number|#|no)?[\\s:=]+\\+?\\d[\\d\\s().-]{9,}'],
     framework_citations: ['eu-ai-act'],
     controls: {},
+  },
+  {
+    // Email address, excluding common dummy/example domains to avoid flagging
+    // documentation and test data.
+    rule_id: 'RT-PII-005', severity: 'medium', action: 'redact', category: 'pii',
+    description: 'Email address (likely personal/customer)',
+    patterns: ['[A-Za-z0-9._%+-]+@(?!(?:example|test|localhost|acme|contoso|sample|fake|invalid|domain|email|mycompany|yourcompany)\\b)[A-Za-z0-9.-]+\\.[A-Za-z]{2,}'],
+    framework_citations: ['eu-ai-act', 'nist-sp-800-53'],
+    controls: { 'nist-sp-800-53': ['PT-2'] },
   },
   // ---- AI-specific threats ----
   {

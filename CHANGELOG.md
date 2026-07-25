@@ -48,6 +48,20 @@ drift detection, PDF ingestion, and a full incident-reporting subsystem.
 See `docs/BUILD_STATUS.md` for the live feature ledger (owner agent, reviewer,
 counsel verdict, tests) so other sessions and agents can pick up mid-stream.
 
+### Security & detection hardening (pre-test)
+- Runtime detection now covers the iconic secret formats: AWS access keys,
+  AWS secret keys, Google API keys, Slack tokens, Stripe live keys, and DB
+  connection strings with inline credentials (RT-SECRET-007..013).
+- Added an email-address PII rule (RT-PII-005), excluding example/test domains.
+- Fixed a false positive: the `password=` heuristic (RT-SECRET-004) no longer
+  hard-blocks benign placeholders (`DB_PASSWORD=changeme_in_production`,
+  `.env.example`); downgraded to `flag` with placeholder exclusions.
+- Raised the `pdfjs-dist` floor to ^4.10.38 (uses @napi-rs/canvas, no node-tar
+  chain) so a published `npm i -g policyforge` audits clean on any machine — the
+  npx and clone install paths are now both 0-vulnerability.
+- Docs: replaced short key placeholders that returned ALLOW with a full-length
+  example key that actually blocks; fixed the drift-snapshot path example.
+
 ### Security (dependency audit)
 - Resolved all 12 `npm audit` findings (11 high, 1 critical) — now **0 vulnerabilities**.
   - Critical `tar` chain (via `pdfjs-dist` → optional `canvas` → node-pre-gyp → tar)

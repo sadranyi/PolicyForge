@@ -10,7 +10,7 @@ Most organizations have a folder of PDFs that say *"this is our policy"* and an 
 
 This tool is the bridge. One command produces a working toolkit your team can drop into their repos.
 
-## What's in v0.1
+## Baselines (shipped since v0.1)
 
 Three baselines, each with its own toolkit shape:
 

@@ -21,7 +21,7 @@ git clone https://github.com/sadranyi/PolicyForge.git
 cd PolicyForge && npm install
 # expose the commands on your PATH so all examples work verbatim:
 npm link --workspace packages/cli --workspace packages/mcp
-policyforge scan --text "sk-ant-api03-<key>"     # -> Verdict: BLOCK
+policyforge scan --text "sk-ant-api03-EXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLEKEYEXAMPLE12"     # -> Verdict: BLOCK
 ```
 
 Or without touching PATH, run the CLI directly: `node packages/cli/src/index.js scan --text "..."`.
