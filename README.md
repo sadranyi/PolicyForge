@@ -40,6 +40,8 @@ v0.2 turns PolicyForge into a policy *enforcement* platform. Everything below co
 
 Everything stays deterministic, local, no-LLM, and framework-cited. See [`CHANGELOG.md`](CHANGELOG.md) and [`docs/BUILD_STATUS.md`](docs/BUILD_STATUS.md).
 
+**Per-package usage docs:** [core](packages/core/README.md) · [CLI](packages/cli/README.md) · [MCP server](packages/mcp/README.md) · [web](packages/web/README.md) — index at [`docs/MODULES.md`](docs/MODULES.md).
+
 ## Form factors
 
 - **CLI** (`policyforge`) — the canonical engine. Privacy-friendly: nothing leaves your machine.
